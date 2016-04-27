@@ -4,180 +4,286 @@
 <style>
 body {
 	background-color: #888888;
-	margin:0 auto;
-	padding:0;
-	width:96%;
+	margin: 0 auto;
+	padding: 0;
+	width: 96%;
 }
+
 .sy_head {
 	background-color: #44B78B;
 	color: #FFFFFF;
 	font-weight: bold;
 	text-align: center;
-        border-radius: 2px;
-     }
-.sy_context{
+	border-radius: 2px;
+}
+
+.sy_context {
 	overflow: auto;
 	height: 94%;
 }
-.sy_win{
+
+.sy_win {
 	float: left;
-        background-color:#e9e9e9;
-	box-shadow:0 1px 3px 2px #666;
-	border:1px solid #44B78B;
+	background-color: #e9e9e9;
+	box-shadow: 0 1px 3px 2px #666;
+	border: 1px solid #44B78B;
 	position: relative;
 	width: 50%;
 	height: 48%;
 }
+
 .sy_close_win {
 	background-color: #44B78B;
 	color: #FFFFFF;
 	font-weight: bold;
 	text-align: center;
-     }
+}
 </style>
 <script>
-var sy_keyConf={
-	'f':{'req':sy_activeUrl,'help':'active url'},
-	'o':{'req':sy_openWinOrTab,'resp':sy_openWinOrTabResp,'help':'open window or tab'},
-	'x':{'req':sy_closeWinOrTab,'help':'close window or tab'},
-	'a':{'req':sy_activeWinOrTab,'resp':sy_activeWinOrTabResp,'help':'active window or tab'},
-	'm':{'req':sy_minOrMax,'help':'maximized window or restore window'},
-	's':{'req':sy_switchWinOrTab,'help':'switch window or tab'},
-	'H':{'req':sy_moveLeft,'help':'extend window left'},
-	'L':{'req':sy_moveRight,'help':'extend window right'},
-	'J':{'req':sy_moveDown,'help':'extend window down'},
-	'K':{'req':sy_moveUp,'help':'extend window up'},
-	'h':{'req':sy_scrollLeft,'help':'scroll window left'},
-	'l':{'req':sy_scrollRight,'help':'scroll window right'},
-	'j':{'req':sy_scrollDown,'help':'scroll window down'},
-	'k':{'req':sy_scrollUp,'help':'scroll window up'},
-	'/':{'req':sy_find,'help':'find'},
-	':':{'req':sy_command,'help':'command'},
-	'?':{'req':sy_help,'help':'help'}
-}
-var sy_prefixKey;
-var sy_valueKey = '';
-function sy_dispatchKeyHandler(e){
-	var pressKey = String.fromCharCode(e.keyCode);
-	var keyHandler = sy_keyConf[pressKey];
-	if(keyHandler){
-		sy_prefixKey = pressKey;
-		 if(keyHandler['resp']){setTimeout(function(){keyHandler['resp']()}, 1000);}
-		if( this === document ){
-			if( pressKey !== 'o' ){
-				return;
+	var sy_keyConf = {
+		'f' : {
+			'req' : sy_activeUrl,
+			'help' : 'active url'
+		},
+		'o' : {
+			'req' : sy_openWinOrTab,
+			'resp' : sy_openWinOrTabResp,
+			'help' : 'open window or tab'
+		},
+		'x' : {
+			'req' : sy_closeWinOrTab,
+			'help' : 'close window or tab'
+		},
+		'a' : {
+			'req' : sy_activeWinOrTab,
+			'resp' : sy_activeWinOrTabResp,
+			'help' : 'active window or tab'
+		},
+		'm' : {
+			'req' : sy_minOrMax,
+			'help' : 'maximized window or restore window'
+		},
+		's' : {
+			'req' : sy_switchWinOrTab,
+			'help' : 'switch window or tab'
+		},
+		'H' : {
+			'req' : sy_moveLeft,
+			'help' : 'extend window left'
+		},
+		'L' : {
+			'req' : sy_moveRight,
+			'help' : 'extend window right'
+		},
+		'J' : {
+			'req' : sy_moveDown,
+			'help' : 'extend window down'
+		},
+		'K' : {
+			'req' : sy_moveUp,
+			'help' : 'extend window up'
+		},
+		'h' : {
+			'req' : sy_scrollLeft,
+			'help' : 'scroll window left'
+		},
+		'l' : {
+			'req' : sy_scrollRight,
+			'help' : 'scroll window right'
+		},
+		'j' : {
+			'req' : sy_scrollDown,
+			'help' : 'scroll window down'
+		},
+		'k' : {
+			'req' : sy_scrollUp,
+			'help' : 'scroll window up'
+		},
+		'/' : {
+			'req' : sy_find,
+			'help' : 'find'
+		},
+		':' : {
+			'req' : sy_command,
+			'help' : 'command'
+		},
+		'?' : {
+			'req' : sy_help,
+			'help' : 'help'
+		}
+	}
+	var sy_prefixKey;
+	var sy_valueKey = '';
+	function sy_dispatchKeyHandler(e) {
+		var pressKey = String.fromCharCode(e.keyCode);
+		var keyHandler = sy_keyConf[pressKey];
+		if (keyHandler) {
+			sy_prefixKey = pressKey;
+			if (keyHandler['resp']) {
+				setTimeout(function() {
+					keyHandler['resp']()
+				}, 1000);
+			}
+			if (this === document) {
+				if (pressKey !== 'o') {
+					return;
+				}
+			}
+			keyHandler['req'](e, $(this));
+		} else {
+			if (sy_prefixKey) {
+				sy_valueKey += pressKey;
 			}
 		}
-		keyHandler['req'](e,$(this));
-	}else{
-		if(sy_prefixKey){
-			sy_valueKey += pressKey;
+	}
+	function sy_activeUrl(e, $this) {
+	}
+	function sy_openWinOrTab(e, $this) {
+		console.log($('.sy_win_close_index'));
+		$('.sy_win_close_index').css({
+			'color' : 'red'
+		});
+	}
+	function sy_openWinOrTabResp() {
+		$('#sy_win_' + sy_valueKey).css({
+			display : 'block'
+		});
+		$('#sy_win_' + sy_valueKey + ' .sy_context').focus();
+		$('#sy_close_win_' + sy_valueKey).remove();
+		sy_prefixKey = '';
+		sy_valueKey = '';
+	}
+	function sy_closeWinOrTab(e, $this) {
+		var id = $this.attr('id');
+		var index = getSyIndex(id);
+		$('.sy_close_wins').append(
+				'<span class="sy_close_win" id="sy_close_win_'+index+'">'
+						+ $('#' + id + ' .sy_head_name').html()
+						+ '[<span class="sy_win_close_index">' + index
+						+ '</span>]' + '</span>');
+		$this.css({
+			display : 'none'
+		});
+		$($('.sy_win:visible .sy_context').get(0)).focus();
+	}
+	function sy_activeWinOrTab(e, $this) {
+		$('.sy_win_index').css({
+			'color' : 'red'
+		});
+	}
+	function sy_activeWinOrTabResp() {
+		$('#sy_context_' + sy_valueKey).focus();
+		$('.sy_win_index').css({
+			'color' : '#FFFFFF'
+		});
+		sy_prefixKey = '';
+		sy_valueKey = '';
+	}
+	function sy_minOrMax(e, $this) {
+		//var offsettop = $('.sy_wins').css('top') - $this.css('top');
+		//var offsetleft = $('.sy_wins').css('left') - $this.css('left');
+		console.log($('.sy_wins').get(0).top);
+		//console.log(offsetleft);
+		//$this.css({left:offsetleft,top:offsettop,'z-index':999});
+	}
+	function sy_switchWinOrTab(e, $this) {
+	}
+	function sy_moveLeft(e, $this) {
+	}
+	function sy_moveRight(e, $this) {
+	}
+	function sy_moveDown(e, $this) {
+	}
+	function sy_moveUp(e, $this) {
+	}
+	function sy_scrollLeft(e, $this) {
+	}
+	function sy_scrollRight(e, $this) {
+	}
+	function sy_scrollDown(e, $this) {
+	}
+	function sy_scrollUp(e, $this) {
+	}
+	function sy_find(e, $this) {
+	}
+	function sy_command(e, $this) {
+	}
+	function sy_help(e, $this) {
+		var helpObj = {};
+		for (key in sy_keyConf) {
+			if (sy_keyConf.hasOwnProperty(key)) {
+				helpObj[key] = sy_keyConf[key]['help'];
+			}
+		}
+		//TODO:add dialog show this help message
+		console.log(helpObj);
+	}
+	$().ready(function() {
+		$('.sy_win').on('keypress', sy_dispatchKeyHandler);
+		$('.sy_head, .sy_context').on('focus', sy_focus);
+		$('.sy_head, .sy_context').on('blur', sy_blur);
+		$('#sy_context_1').focus();
+	});
+	function sy_focus(e) {
+		if ($(this).attr('class') === 'sy_head'
+				|| $(this).attr('class') === 'sy_context') {
+			$('.sy_win .sy_head').css({
+				opacity : 0.5
+			});
+			if ($(this).attr('class') === 'sy_head') {
+				$(this).css({
+					opacity : 1
+				});
+			} else {
+				$(this).siblings('.sy_head').css({
+					opacity : 1
+				});
+			}
 		}
 	}
-}
-function sy_activeUrl(e,$this){}
-function sy_openWinOrTab(e,$this){
-	console.log($('.sy_win_close_index'));
-	$('.sy_win_close_index').css({'color':'red'});
-}
-function sy_openWinOrTabResp(){
-	$('#sy_win_'+sy_valueKey).css({display:'block'});
-	$('#sy_win_'+sy_valueKey+' .sy_context').focus();
-	$('#sy_close_win_'+sy_valueKey).remove();
-	sy_prefixKey='';
-	sy_valueKey='';
-}
-function sy_closeWinOrTab(e,$this){
-	var id = $this.attr('id');
-	var index = getSyIndex(id);
-	$('.sy_close_wins').append('<span class="sy_close_win" id="sy_close_win_'+index+'">'+$('#'+id+' .sy_head_name').html()+'[<span class="sy_win_close_index">'+index+'</span>]'+'</span>');
-	$this.css({display:'none'});
-	$($('.sy_win:visible .sy_context').get(0)).focus();
-}
-function sy_activeWinOrTab(e,$this){
-	$('.sy_win_index').css({'color':'red'});
-}
-function sy_activeWinOrTabResp(){
-	$('#sy_context_'+sy_valueKey).focus();
-	$('.sy_win_index').css({'color':'#FFFFFF'});
-	sy_prefixKey='';
-	sy_valueKey='';
-}
-function sy_minOrMax(e,$this){
-	//var offsettop = $('.sy_wins').css('top') - $this.css('top');
-	//var offsetleft = $('.sy_wins').css('left') - $this.css('left');
-	console.log($('.sy_wins').get(0).top);
-	//console.log(offsetleft);
-	//$this.css({left:offsetleft,top:offsettop,'z-index':999});
-}
-function sy_switchWinOrTab(e,$this){}
-function sy_moveLeft(e,$this){}
-function sy_moveRight(e,$this){}
-function sy_moveDown(e,$this){}
-function sy_moveUp(e,$this){}
-function sy_scrollLeft(e,$this){}
-function sy_scrollRight(e,$this){}
-function sy_scrollDown(e,$this){}
-function sy_scrollUp(e,$this){}
-function sy_find(e,$this){}
-function sy_command(e,$this){}
-function sy_help(e,$this){
-	var helpObj = {};
-	for(key in sy_keyConf){
-		if(sy_keyConf.hasOwnProperty(key)){
-			helpObj[key]=sy_keyConf[key]['help'];
-		}	
+	function sy_blur(e) {
 	}
-	//TODO:add dialog show this help message
-	console.log(helpObj);
-}
-$().ready(function(){
-	$('.sy_win').on('keypress',sy_dispatchKeyHandler);
-	$('.sy_head, .sy_context').on('focus',sy_focus);
-	$('.sy_head, .sy_context').on('blur',sy_blur); 
-	$('#sy_context_1').focus();
-});
-function sy_focus(e){
-	if($(this).attr('class')==='sy_head' || $(this).attr('class')==='sy_context'){
-		$('.sy_win .sy_head').css({opacity:0.5});
-		if($(this).attr('class')==='sy_head'){
-			$(this).css({opacity:1});
-		}else{
-			$(this).siblings('.sy_head').css({opacity:1});
-		}
+	function getSyIndex(id) {
+		return id.substr(id.lastIndexOf('_') + 1, id.length)
 	}
-}
-function sy_blur(e){
-}
-function getSyIndex(id){
-	return id.substr(id.lastIndexOf('_')+1,id.length)
-}
 </script>
 </head>
 <body>
-<div id="sy_header"></div>
-<div class="sy_wins">
-<div id="sy_win_1" class="sy_win" tabindex="-1">
+	<div id="sy_header"></div>
+	<div class="sy_wins">
+		<div id="sy_win_1" class="sy_win" tabindex="-1">
 
-<div id="sy_head_1" class="sy_head" tabindex="-1"><span class="sy_head_name">head name</span> [<span class="sy_win_index">1</span>]</div>
-<div id="sy_context_1" class="sy_context" tabindex="-1">xtcontext</div>
-</div>
-<div id="sy_win_2" class="sy_win" tabindex="-1">
+			<div id="sy_head_1" class="sy_head" tabindex="-1">
+				<span class="sy_head_name">head name</span> [<span
+					class="sy_win_index">1</span>]
+			</div>
+			<div id="sy_context_1" class="sy_context" tabindex="-1">xtcontext</div>
+		</div>
+		<div id="sy_win_2" class="sy_win" tabindex="-1">
 
-<div id="sy_head_2" class="sy_head" tabindex="-1"><span class="sy_head_name">head name</span> [<span class="sy_win_index">2</span>]</div>
-<div id="sy_context_2" class="sy_context" tabindex="-1">xtcontext</div>
-</div>
-<div id="sy_win_3" class="sy_win" tabindex="-1">
+			<div id="sy_head_2" class="sy_head" tabindex="-1">
+				<span class="sy_head_name">head name</span> [<span
+					class="sy_win_index">2</span>]
+			</div>
+			<div id="sy_context_2" class="sy_context" tabindex="-1">xtcontext</div>
+		</div>
+		<div id="sy_win_3" class="sy_win" tabindex="-1">
 
-<div id="sy_head_3" class="sy_head" tabindex="-1"><span class="sy_head_name">head name</span> [<span class="sy_win_index">3</span>]</div>
-<div id="sy_context_3" class="sy_context" tabindex="-1">xtcontext</div>
-</div>
-<div id="sy_win_4" class="sy_win" tabindex="-1">
+			<div id="sy_head_3" class="sy_head" tabindex="-1">
+				<span class="sy_head_name">head name</span> [<span
+					class="sy_win_index">3</span>]
+			</div>
+			<div id="sy_context_3" class="sy_context" tabindex="-1">xtcontext</div>
+		</div>
+		<div id="sy_win_4" class="sy_win" tabindex="-1">
 
-<div id="sy_head_4" class="sy_head" tabindex="-1"><span class="sy_head_name">head name</span> [<span class="sy_win_index">4</span>]</div>
-<div id="sy_context_4" class="sy_context" tabindex="-1">xtcontext</div>
-</div>
-</div>
-<div id="sy_footer"></div>
-</body>    
+			<div id="sy_head_4" class="sy_head" tabindex="-1">
+				<span class="sy_head_name">head name</span> [<span
+					class="sy_win_index">4</span>]
+			</div>
+			<div id="sy_context_4" class="sy_context" tabindex="-1">xtcontext</div>
+		</div>
+	</div>
+	<div id="sy_footer"></div>
+</body>
 </html>

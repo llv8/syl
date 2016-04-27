@@ -1,11 +1,10 @@
-{% extends "frame.html" %}
+{% extends "frame.html" %} 
 
-{% block content %}
-	{% for app in apps %}
-		{% include app %}
-	{% endfor %}
-	
-{% endblock %}  
+{% block content %} 
+	{% for app in apps %} 
+		{%include app %} 
+	{% endfor %} 
+{% endblock %} 
 
 {% block footer %}
 	{% include "footer.html" %}

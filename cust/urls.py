@@ -18,4 +18,6 @@ from . import views
 urlpatterns = [
     url(r'^i', views.index),
     url(r'^adduser', views.add_user),
+    url(r'^addgroup', views.add_group),
+    url(r'^applyuser', views.apply_group),
 ]

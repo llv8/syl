@@ -115,10 +115,15 @@ body {
 	border: 2px ridge #a1a1a1;
 	height: -webkit-calc(90% - 4px);
 	width: -webkit-calc(100% - 4px);
+	overflow: auto;
 }
 
 #chat_textarea {
 	border: 2px ridge #a1a1a1;
 	height: -webkit-calc(10% - 4px);
 	width: 100%;
+}
+
+.highlight {
+	background-color: yellow
 }

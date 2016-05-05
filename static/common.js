@@ -1,11 +1,6 @@
 $(function() {
-
     syl = {
-	user : {
-	    name : 111,
-	    staus : 222,
-	    loc : 333,
-	},
+	user : null,
 	wnd : {
 	    list : null,
 	    activewnd : null,
@@ -16,6 +11,9 @@ $(function() {
 	init : function() {
 	    // this.login();
 	    // this.loadFile();
+	    if (this.user == null) {
+		$('#stat').html('未登录')
+	    }
 	    this.registerKey();
 	    this.registerFocus();
 	    Mousetrap.bind('esc', this.escHandler);
@@ -206,20 +204,6 @@ $(function() {
 
 });
 
-function CmdRequest(cmd) {
-    this.cmd = cmd;
-    function send() {
-	$.ajax({
-	    type : 'POST',
-	    url : this.cmd.app + '/' + this.cmd.label,
-	    data : 'cmd=' + cmd.cmd_line,
-	    success : function(data) {
-		this.cmd.response(data);
-	    }
-	});
-    }
-}
-
 function syl_activeElement() {
     $('#fkey').empty();
     var interativeEle = $('a,input,textarea,div[tabIndex]');
@@ -308,40 +292,41 @@ function syl_maxOrMinWnd() {
 }
 
 function syl_calcPx(px, val) {
-    return parseInt(px.replace(/px/, '')) + val + 'px';
+    return parseInt(px.replace(/px/, '')) + val;
 }
 
 function syl_command(event) {
 
     event.preventDefault();
-    var CMD_CNF = [
-	    {
-		label : 'adduser',
-		app : 'cust',
-		value : 'Li,Lei M 18848884888 lilei.gmail.com',
-		help : 'params--1:lastname,firstname 2:gender M-Male F-Female 3:phone 4:email',
-		valid : function(cmd_line) {
-		    var params = cmd_line.split(/\s+/);
-		    var err_msg = '';
-		    if (params.length != 5) {
-			err_msg = 'miss parameter!'
+    var CMD_CNF = [ {
+	label : 'register',
+	app : 'cust',
+	value : 'Li,Lei 18848884888 lilei.gmail.com',
+	help : 'params--1:lastname,firstname 2:phone 3:email',
+	valid : syl_valid_register,
+	response : syl_resp_register
 
-		    }
-		},
-		response : function(data) {
-
-		}
-	    }, {
-		label : 'addgroup',
-		app : 'cust',
-		value : 'groupname',
-		help : 'params--1:groupname'
-	    }, {
-		label : 'applygroup',
-		app : 'cust',
-		value : 'groupname',
-		help : 'params--1:groupname'
-	    }
+    }, {
+	label : 'addgroup',
+	app : 'cust',
+	value : 'groupname',
+	help : 'params--1:groupname'
+    }, {
+	label : 'applygroup',
+	app : 'cust',
+	value : 'groupname',
+	help : 'params--1:groupname'
+    }, {
+	label : 'login',
+	app : 'cust',
+	value : '[email|phone]',
+	help : 'params--1:email or phone'
+    }, {
+	label : 'logout',
+	app : 'cust',
+	value : '',
+	help : ''
+    }
 
     ];
     var input = $('<input>').attr('id', 'cmd');
@@ -398,7 +383,7 @@ function syl_command(event) {
 	    var cmd_line = $("#cmd").val();
 	    var cmd = null;
 	    $.each(CMD_CNF, function(i, n) {
-		if (cmd_line.match('^' + n.label + ' ')) {
+		if (cmd_line.match('^' + n.label)) {
 		    cmd = n;
 		}
 	    });
@@ -419,13 +404,13 @@ function syl_command(event) {
 		    $.ajax({
 			type : 'POST',
 			data : 'cmd=' + cmd_line,
+			dataType : 'json',
 			url : cmd.app + '/' + cmd.label,
 			headers : {
 			    'X-CSRFToken' : syl_getCookie('csrftoken')
 			},
 			success : function(data) {
-			    syl.showMsg('successfully.');
-			    $('#mask').css('display', 'none').empty();
+			    cmd.response(data);
 			}
 		    });
 		}
@@ -492,40 +477,82 @@ function syl_move(direct, type) {
     if (direct == 2) {
 	// same row add or reduce
 	var height0 = $(syl.wnd.list[0]).css('height');
-	var height2 = $(syl.wnd.list[2]).css('height');
 
 	// type==1:move to down, type==2:move to up
 	if (type == 1) {
-	    height0 = syl_calcPx(height0, 10);
-	    height2 = syl_calcPx(height2, -10);
+	    height0 = parseInt(height0.replace(/px/, '')) + 10;
 	} else {
-	    height0 = syl_calcPx(height0, -10);
-	    height2 = syl_calcPx(height2, 10);
+	    height0 = parseInt(height0.replace(/px/, '')) - 10;
 	}
-	$(syl.wnd.list[0]).css('height', height0);
-	$(syl.wnd.list[1]).css('height', height0);
-	$(syl.wnd.list[2]).css('height', height2);
-	$(syl.wnd.list[3]).css('height', height2);
+
+	percenttop = height0 / (document.documentElement.clientHeight - 20 - 8)
+		* 100;
+	percentbottom = 100 - percenttop;
+
+	if (percenttop > 80 || percenttop < 20) {
+	    // do nothing
+	} else {
+	    $(syl.wnd.list[0]).css('height', Math.floor(percenttop) + '%');
+	    $(syl.wnd.list[1]).css('height', Math.floor(percenttop) + '%');
+	    $(syl.wnd.list[2]).css('height', Math.floor(percentbottom) + '%');
+	    $(syl.wnd.list[3]).css('height', Math.floor(percentbottom) + '%');
+	}
 
     }
 
     if (direct == 1) {
 	// same column add or reduce
 	var width0 = $(syl.wnd.list[0]).css('width');
-	var width1 = $(syl.wnd.list[1]).css('width');
 	// type==1:move to left, type==2:move to right
 	if (type == 1) {
-	    width0 = syl_calcPx(width0, -10);
-	    width1 = syl_calcPx(width1, 10);
+	    width0 = parseInt(width0.replace(/px/, '')) - 10;
 	} else {
-	    width0 = syl_calcPx(width0, 10);
-	    width1 = syl_calcPx(width1, -10);
+	    width0 = parseInt(width0.replace(/px/, '')) + 10;
 	}
-	$(syl.wnd.list[0]).css('width', width0);
-	$(syl.wnd.list[2]).css('width', width0);
-	$(syl.wnd.list[1]).css('width', width1);
-	$(syl.wnd.list[3]).css('width', width1);
 
+	percentleft = width0 / (document.documentElement.clientWidth - 8) * 100;
+	if (percentleft > 80 || percentleft < 20) {
+	    // do nothing
+	} else {
+	    if (type == 2) {
+		$(syl.wnd.list[0])
+			.css(
+				'width',
+				'\-webkit\-calc(' + Math.ceil(percentleft)
+					+ '% - 4px)');
+		$(syl.wnd.list[2])
+			.css(
+				'width',
+				'\-webkit\-calc(' + Math.ceil(percentleft)
+					+ '% - 4px)');
+		$(syl.wnd.list[1]).css(
+			'width',
+			'\-webkit\-calc(' + (100 - Math.ceil(percentleft))
+				+ '% - 4px)');
+		$(syl.wnd.list[3]).css(
+			'width',
+			'\-webkit\-calc(' + (100 - Math.ceil(percentleft))
+				+ '% - 4px)');
+	    } else {
+		$(syl.wnd.list[0]).css(
+			'width',
+			'\-webkit\-calc(' + Math.floor(percentleft)
+				+ '% - 4px)');
+		$(syl.wnd.list[2]).css(
+			'width',
+			'\-webkit\-calc(' + Math.floor(percentleft)
+				+ '% - 4px)');
+		$(syl.wnd.list[1]).css(
+			'width',
+			'\-webkit\-calc(' + (100 - Math.floor(percentleft))
+				+ '% - 4px)');
+		$(syl.wnd.list[3]).css(
+			'width',
+			'\-webkit\-calc(' + (100 - Math.floor(percentleft))
+				+ '% - 4px)');
+	    }
+
+	}
     }
 
 }
@@ -557,7 +584,6 @@ function syl_find() {
 		'top' : '-webkit-calc(100% - 20px)'
 	    }).keyup(
 		    function(event) {
-
 			$(syl.wnd.list).removeHighlight();
 			syl.wnd.activeselected = 0;
 
@@ -571,12 +597,19 @@ function syl_find() {
 			$(syl.wnd.activeele).highlight(
 				$(this).val()
 					.substring(1, $(this).val().length));
+			if ($('.highlight')[0]) {
+			    var parent = $($('.highlight')[0]).parents()
+				    .filter('div[tabIndex]')[0];
+			    var top = $('.highlight')[0].offsetTop
+				    - parent.offsetTop - 18;
+			    $(parent).scrollTop(top);
+			    if (event.keyCode === 13) {
+				$($('.highlight')[0]).css('background-color',
+					'#FFC107');
 
-			if (event.keyCode === 13) {
-			    $($('.highlight')[0]).css('background-color',
-				    '#FFC107');
-
+			    }
 			}
+
 		    }));
 
     $('#dyna input')[0].focus();
@@ -622,8 +655,9 @@ function syl_moveNext() {
     // var viewportH = $('#chat_content')[0].clientHeight;
     // real view
     // var realH = $('#chat_content')[0].scrollHeight;
-    var top = hl[next].offsetTop - $(hl[next]).parent()[0].offsetTop - 18;
-    $($(hl[next]).parent()[0]).scrollTop(top);
+    var parent = $(hl[next]).parents().filter('div[tabIndex]')[0];
+    var top = hl[next].offsetTop - parent.offsetTop - 18;
+    $(parent).scrollTop(top);
 }
 
 function syl_movePre() {
@@ -637,8 +671,9 @@ function syl_movePre() {
     // var viewportH = $('#chat_content')[0].clientHeight;
     // real view
     // var realH = $('#chat_content')[0].scrollHeight;
-    var top = hl[pre].offsetTop - $(hl[pre]).parent()[0].offsetTop - 18;
-    $($(hl[pre]).parent()[0]).scrollTop(top);
+    var parent = $(hl[next]).parents().filter('div[tabIndex]')[0];
+    var top = hl[pre].offsetTop - parent.offsetTop - 18;
+    $(parent).scrollTop(top);
 }
 
 function syl_firstLine() {
@@ -650,14 +685,7 @@ function syl_lastLine() {
 }
 
 function syl_chat_send(event) {
-    if (event.keyCode == 13) {
-	$.ajax({
-	    type : 'POST',
-	    url : 'chat/send',
-	    data : ''
-
-	});
-    }
+    ws_send();
 }
 
 function syl_getCookie(name) {
@@ -674,4 +702,42 @@ function syl_getCookie(name) {
 	}
     }
     return cookieValue;
+}
+
+function syl_valid_register(cmd_line) {
+    var params = cmd_line.split(/\s+/);
+    var err_msg = '';
+    if (params.length != 4) {
+	err_msg = 'parameter more or less!';
+    } else if (params[1].length >= 50) {
+	err_msg = 'user name is too long!';
+    } else if (params[1].split(',').length != 2) {
+	err_msg = 'user name is invalid!';
+    } else if (!(params[1].split(',')[0].length > 0 && params[1].split(',')[1].length > 0)) {
+	err_msg = 'user name is invalid!';
+    } else if (!params[2].match(/^1[3|5|7|8|][0-9]{9}$/)) {
+	err_msg = 'phone is invalid!';
+    } else if (params[3].length >= 50) {
+	err_msg = 'email is too long!';
+    } else if (!params[3]
+	    .match(/^[A-Z0-9a-z_%+-]+@[A-Za-z0-9-]+.[A-Za-z]{2,4}$/)) {
+	err_msg = 'email is invalid!';
+    }
+    return err_msg;
+}
+
+function syl_resp_register(data) {
+    if (data.level == 2) {
+	syl.showMsg(data.msg, data.level);
+    } else {
+	syl.showMsg(data.msg, 1);
+	$('#mask').css('display', 'none').empty();
+	syl.user = data.user;
+	var name = syl.user.name;
+	if (syl.user.ids > 0) {
+	    name = name + '(' + syl.user.ids + ')'
+	}
+	var status = (syl.user.status == 0) ? 'inactive' : 'active';
+	$('#stat').html(name + '/' + status);
+    }
 }

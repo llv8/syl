@@ -1,10 +1,9 @@
 from django.db import models
 
-# Create your models here.
 class User(models.Model):
     name = models.CharField(max_length=50)
-    gender = models.BooleanField()
-    email = models.CharField(max_length=50)
+    ids = models.IntegerField(default=0)
+    email = models.EmailField(max_length=50)
     phone = models.CharField(max_length=20)
     status = models.IntegerField(default=0)
 
@@ -13,6 +12,7 @@ class Group(models.Model):
     name = models.CharField(max_length=50)
     manger = models.ForeignKey(User)
     
+# each group can mostly add 50 users    
 class GroupUser(models.Model):
     gourp = models.ForeignKey(Group)
     user = models.ForeignKey(User)
@@ -23,4 +23,3 @@ USER_STATUS = {'0':'Inactive', '1':'Active', '2':'Supression'}
 
 # Inactive need group manager to active
 GROUP_USER_STATUS = {'':'Inactive', '1':'Active'}
-    

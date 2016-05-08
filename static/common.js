@@ -26,7 +26,7 @@ $(function() {
       $('input,textarea, div[tabIndex]').focus(function() {
         $('input,textarea,div[tabIndex]').css('border-color', '#a1a1a1');
         for (var i = 0; i < syl.wnd.list.length; i++) {
-          $(syl.wnd.list[i]).children('.title').css('opacity', '0.5');
+          $(syl.wnd.list[i]).children('.title').css('opacity', '0.2');
         }
         if ($(this).attr('class') == 'wnd') {
           $(this).children('.title').css('opacity', '1');
@@ -252,19 +252,6 @@ function syl_maxOrMinWnd() {
       'float': 'left'
     });
   } else {
-    /*
-     * for (var i = 0; i < syl.wnd.list.length; i++) { var width =
-     * $(syl.wnd.list[i]).css('width'); var all_width =
-     * document.documentElement.clientWidth; var percent_width =
-     * parseInt(width.replace(/px/, '')) / (all_width - 8) 100 + '%';
-     * 
-     * var height = $(syl.wnd.list[i]).css('height'); var all_height =
-     * document.documentElement.clientHeight; var percent_height =
-     * parseInt(height.replace(/px/, '')) / (all_height - 20 - 8) * 100 + '%';
-     * 
-     * $(syl.wnd.list[i]).attr('pre-width', percent_width);
-     * $(syl.wnd.list[i]).attr('pre-height', percent_height); }
-     */
     var width = $(syl.wnd.list[0]).css('width');
     var all_width = document.documentElement.clientWidth;
     var percent_width = parseInt(width.replace(/px/, '')) / (all_width - 8)
@@ -710,7 +697,34 @@ function syl_lastLine() {
 }
 
 function syl_chat_send(event) {
-  ws_send();
+  if (event.keyCode == 64 && $('#chat_content').val() == '') {
+
+    // localStorage.setItem('user_list','{"lv":{"id":"1"},"ven":{"id":"2"}}');
+    var userList = JSON.parse(localStorage.getItem('user_list'));
+    
+    // localStorage.removeItem();
+    // localStorage.clear();
+
+  } else if (event.keyCode == 64 && $('#chat_content').val() == '@') {
+
+  } else if (event.keyCode == 13) {
+    ws_send();
+  }
+
+}
+
+function syl_updateUserList(updateUserList) {
+  var userList = JSON.parse(localStorage.getItem('user_list'));
+  for ( var key in updateUserList) {
+    if (updateUserList[key].status == 1) {
+      userList.setItem(key, {
+        "id": updateUserList[kye]["id"]
+      });
+    } else if (updateUserList[key].status == 2) {
+      userList.removeItem(key);
+    }
+    console.log(key);
+  }
 }
 
 function syl_getCookie(name) {

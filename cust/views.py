@@ -47,11 +47,16 @@ def register(request):
         ids = maxids[0].ids + 1
     user = models.User(name=cmds[1], phone=cmds[2], email=cmds[3], ids=ids)
     user.save()
-        
-    return HttpResponse(json.dumps({'msg':'add user success', 'user':{'name':user.name, 'ids':user.ids, 'status':user.status
+    # TODO: send email valid
+    request.session['userid'] = user.id
+    
+    return HttpResponse(json.dumps({'msg':'add user success,go to mailbox to valid', 'user':{'name':user.name, 'ids':user.ids, 'status':user.status
                                                                      }}))
 
 def add_group(request):
+    isLogin = True
+    if not isLogin:
+        return HttpResponse(json.dumps({'msg':'please login', 'level':2}))
     cmd = request.POST['cmd']
     cmds = cmd.split(' ')
     err_msg = None
@@ -66,9 +71,10 @@ def add_group(request):
     
     if(len(models.Group.objects.filter(name=cmds[1])) > 0):
         return  HttpResponse(json.dumps({'msg':'group name has been used', 'level':2}))
-    
-    group = models.Group(name=cmds[1])
+    manager = models.User.objects.get(request.session['userid'])
+    group = models.Group(name=cmds[1],manager=manager)
     group.save()
+        
     
 
 def valid_user(request):
@@ -101,6 +107,9 @@ def login(request):
     if (len(cmds[1]) >= 50):
             err_msg = 'email or phone is too long!' 
     
+    if(err_msg):
+        return HttpResponse(json.dumps({'msg':err_msg, 'level':2}))
+    
     isEmail = False
     isPhone = False
             
@@ -111,16 +120,23 @@ def login(request):
             isEmail = True
 
     if(isPhone):
+        # TODO: send sms
         pass
     if(isEmail):
+        # TODO: send email
         pass
-
-    if(err_msg):
-        return HttpResponse(json.dumps({'msg':err_msg, 'level':2}))
     
+    if(not isPhone and not isEmail):
+        return HttpResponse(json.dumps({'msg':'phone or email is invalid', 'level':2}))
+    if(isPhone):
+        return HttpResponse(json.dumps({'msg':'sms is sent,please valid', 'level':1}))
+    if(isEmail):
+        return HttpResponse(json.dumps({'msg':'email is sent,please valid', 'level':1}))
+     
 def valid_login(request):
     request.GET['pwd']
     
+
     
 def logout(request):
     del request.session['userid']

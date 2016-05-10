@@ -112,15 +112,18 @@ body {
 
 #chat_content {
 	border: 2px ridge #a1a1a1;
-	height: -webkit-calc(90% - 4px);
+	height: -webkit-calc(80% - 4px);
 	width: -webkit-calc(100% - 4px);
 	overflow: auto;
 }
 
 #chat_textarea {
 	border: 2px ridge #a1a1a1;
-	height: -webkit-calc(10% - 4px);
-	width: 100%;
+	height: -webkit-calc(20% - 4px);
+	width: -webkit-calc(100% - 14px);
+	background-color: white;
+	padding: 0 5px;
+	overflow: auto;
 }
 
 .highlight {

@@ -3,5 +3,21 @@ sudo apt-get install libmysqlclient-dev
 sudo apt-get install python-dev
 sudo pip install mysql-python
 sudo pip install simplejson
+sudo pip install redis
+
+wget https://github.com/google/pywebsocket/archive/master.zip --no-check-certificate
+upzip master.zip
+cd pywebsocket-master/
+python setup.py build
+python setup.py install --user
+
+sudo apt-get install redis-server
+sudo service redis-server restart
+
+sudo mkdir /var/log/syl
+
+cd /home/lewis/workspace/syl
+python /home/lewis/.local/lib/python2.7/site-packages/mod_pywebsocket/standalone.py -p 8889 -d ws
+
 cd C:\Users\llv1\git\syl
 E:\Python27\python.exe E:\Python27\Lib\site-packages\mod_pywebsocket\standalone.py -p 8889 -d ws

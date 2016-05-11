@@ -316,20 +316,26 @@ function syl_get_userlist() {
 
 function syl_activeElement() {
     $('#fkey').empty();
+
     var interativeEle = $('a,input,div[tabIndex]');
     for (var i = 0; i < interativeEle.length; i++) {
+	if ($(interativeEle[i]).parents('.wnd').css('display') == 'none') {
+	    continue;
+	}
 	if (interativeEle[i].tagName.toUpperCase() == 'DIV'
 		&& $(interativeEle[i]).attr('class') == 'wnd'
 		|| ($(interativeEle[i]).attr('class') && $(interativeEle[i])
 			.attr('class').indexOf('ui-menu-item') >= 0)) {
 	    continue;
 	}
+
 	var tip = $('<div>').attr('class', 'fkey').html(i);
 	var position = $(interativeEle[i]).position();
 	var top = position.top - tip.css('height').replace(/px/, '');
 	var left = position.left - tip.css('width').replace(/px/, '');
 	tip.css('top', top);
 	tip.css('left', left);
+	tip.css('z-index', $(interativeEle[i]).parents('.wnd').css('z-index'));
 	$('#fkey').append(tip).css('display', 'block');
 
 	(function(ind) {

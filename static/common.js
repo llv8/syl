@@ -60,10 +60,8 @@ $(function() {
 		'help' : 'find'
 	    },
 	    'alt+s' : {
-		'req' : function() {
-
-		},
-		'help' : 'switch style'
+		'req' : syl_switchwnd,
+		'help' : 'switch window'
 	    },
 	    'H' : {
 		'req' : syl_moveL,
@@ -979,4 +977,18 @@ function syl_chatsend() {
     if ($(syl.wnd.activeele).is($('#chat_textarea'))) {
 	syl_chat_msg($('#chat_textarea').html());
     }
+}
+
+function syl_switchwnd() {
+    event.preventDefault();
+    var index = 0;
+    for (var i = 0; i < syl.wnd.list.length; i++) {
+	if ($(syl.wnd.activewnd).is($(syl.wnd.list[i]))) {
+	    index = i + 1;
+	    if (index == 4)
+		index = 0;
+	    break;
+	}
+    }
+    $(syl.wnd.list[index])[0].focus();
 }

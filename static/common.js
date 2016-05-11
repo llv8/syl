@@ -60,10 +60,8 @@ $(function() {
 		'help' : 'find'
 	    },
 	    'alt+s' : {
-		'req' : function() {
-
-		},
-		'help' : 'switch style'
+		'req' : syl_switchwnd,
+		'help' : 'switch window'
 	    },
 	    'H' : {
 		'req' : syl_moveL,
@@ -316,20 +314,26 @@ function syl_get_userlist() {
 
 function syl_activeElement() {
     $('#fkey').empty();
+
     var interativeEle = $('a,input,div[tabIndex]');
     for (var i = 0; i < interativeEle.length; i++) {
+	if ($(interativeEle[i]).parents('.wnd').css('display') == 'none') {
+	    continue;
+	}
 	if (interativeEle[i].tagName.toUpperCase() == 'DIV'
 		&& $(interativeEle[i]).attr('class') == 'wnd'
 		|| ($(interativeEle[i]).attr('class') && $(interativeEle[i])
 			.attr('class').indexOf('ui-menu-item') >= 0)) {
 	    continue;
 	}
+
 	var tip = $('<div>').attr('class', 'fkey').html(i);
 	var position = $(interativeEle[i]).position();
 	var top = position.top - tip.css('height').replace(/px/, '');
 	var left = position.left - tip.css('width').replace(/px/, '');
 	tip.css('top', top);
 	tip.css('left', left);
+	tip.css('z-index', $(interativeEle[i]).parents('.wnd').css('z-index'));
 	$('#fkey').append(tip).css('display', 'block');
 
 	(function(ind) {
@@ -973,4 +977,18 @@ function syl_chatsend() {
     if ($(syl.wnd.activeele).is($('#chat_textarea'))) {
 	syl_chat_msg($('#chat_textarea').html());
     }
+}
+
+function syl_switchwnd() {
+    event.preventDefault();
+    var index = 0;
+    for (var i = 0; i < syl.wnd.list.length; i++) {
+	if ($(syl.wnd.activewnd).is($(syl.wnd.list[i]))) {
+	    index = i + 1;
+	    if (index == 4)
+		index = 0;
+	    break;
+	}
+    }
+    $(syl.wnd.list[index])[0].focus();
 }

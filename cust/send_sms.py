@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
+import logging
+
 import top.api
 
 
-def send_vcode():
+def send_vcode(to_phone, username, vcode):
+    logger = logging.getLogger(__name__)
     url = 'gw.api.taobao.com'
     port = 80
     appkey = '23363471'
@@ -12,12 +15,14 @@ def send_vcode():
      
     req.extend = "123456"
     req.sms_type = "normal"
-    req.sms_free_sign_name = "四用儿"
-    req.sms_param = "{\"code\":\"1234\",\"username\":\"lewis\"}"
-    req.rec_num = "18161907873"
-    req.sms_template_code = "SMS_8986408"
+    req.sms_free_sign_name = "四月儿"
+    req.sms_param = "{'vcode':" + str(vcode) + ",'username':" + username + "}"
+    req.rec_num = to_phone
+    req.sms_template_code = "SMS_8896447"
     try:
         resp = req.getResponse()
-        print(resp)
+        logger.info(resp)
+        return True
     except Exception as e:
-        print(e)
+        logger.error(e)
+        return False

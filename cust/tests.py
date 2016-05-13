@@ -1,8 +1,9 @@
 from django.test import TestCase
+import hashlib
 import re
 
 
 # Create your tests here.
-s = re.split('\s+',"a b c  d     e")
-
-print(s)
+data =  'This a md5 test!'
+hash_md5 = hashlib.md5(data)
+print(hash_md5.hexdigest())

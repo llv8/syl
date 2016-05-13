@@ -6,8 +6,8 @@ import logging
 import smtplib
 
 
-# logger = logging.getLogger(__name__)
 def send_vcode(to_addr, username, vcode):
+    logger = logging.getLogger(__name__)
     from_addr = "system@post.siyuel.com"
     password = "lvwen2046821118"
     smtp_server = "smtpdm.aliyun.com"
@@ -23,10 +23,10 @@ def send_vcode(to_addr, username, vcode):
     try:
         server.login(from_addr, password)
         server.sendmail(from_addr, [to_addr], msg.as_string())
+        logger.info(to_addr + 'send mail success')
         return True
     except Exception as e:
-        # logger.error(e)
-        print(e)
+        logger.error(e)
         return False
     finally:
         server.quit()

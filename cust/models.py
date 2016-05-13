@@ -5,7 +5,7 @@ class User(models.Model):
     ids = models.IntegerField(default=0)
     email = models.EmailField(max_length=50)
     phone = models.CharField(max_length=20)
-    status = models.IntegerField(default=0)  # 01:email valid,10:phone valid,11:email and phone valid,00:email and phone not valid
+    status = models.IntegerField(default=0)
     pwd = models.CharField(max_length=32, default='')
     
 # each user can create 5 groups
@@ -19,8 +19,8 @@ class GroupUser(models.Model):
     user = models.ForeignKey(User)
     status = models.IntegerField(default=0)  # 0:invalid,1:valid
 
-# Inactive need email or phone valid, Supression : the user has illegal operator
-USER_STATUS = {'0':'None', '1':'Email Active', '2':'PHone Active', '3':"Both Active"}
+# Inactive :unlogin
+USER_STATUS = {'0':'InActive', '1':'Active'}
 
 # Inactive need group manager to active
 GROUP_USER_STATUS = {'':'Inactive', '1':'Active'}

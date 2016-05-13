@@ -1,23 +1,18 @@
 # -*- coding: utf-8 -*-
-from django.http.response import HttpResponse
-import random
+import hashlib
+import logging
 import re
 
-from cust import send_mail
-import simplejson as json
-
-from . import models
+from cust import send_mail, send_sms
+from cust.views_util import get_cmd_params, resp, get_vcode, \
+     get_param, copy_user_dict, set_user_dict, get_user_dict
 from util import sylredis
 
-def get_cmd_params(request):
-    cmd = request.POST['cmd'].strip(' ')
-    cmds = re.split('\s+', cmd)
-    if(cmds):
-        return cmds[1:]
-    else:
-        return []
-    
+from . import models
+
+
 def register(request):
+    logger = logging.getLogger(__name__)
     params = get_cmd_params(request)
     err_msg = None
     
@@ -30,8 +25,7 @@ def register(request):
     
     if(len(username) >= 50):
         err_msg = USERNAME_LEN_LONG
-    elif(len(username.split(',')) != 2 or not (len(username.split(',')[0]) > 0 and len(username
-                .split(',')[1]) > 0)) :
+    elif(not re.match(RE_USERNAME, username)) :
         err_msg = USERNAME_FMT
     elif (not re.match(RE_PHONE, phone)):
             err_msg = PHONE_INV
@@ -39,12 +33,26 @@ def register(request):
             err_msg = MAIL_INV
     if(err_msg):
         return resp(err_msg)
-    
+
+    users = models.User.objects.filter(phone=phone, email=mail, name=username)
+    if(len(users) > 0):
+        # 如果数据库里有相同的手机号，邮箱和用户名，且redis里的该user的vcode存在，直接返回
+        if(sylredis.get_vcode(users[0].id)):
+            return resp(MAIL_SENT, 1, {'user':copy_user_dict(users[0])})
+        else:
+            # 如果数据库里有相同的手机号，邮箱和用户名，且redis里没有该user的vcode,重新发送
+            vcode = get_vcode()
+            if(not send_mail.send_vcode(mail, username, vcode)):
+                return resp(SYS_ERR)
+            else:
+                return resp(MAIL_SENT, 1, {'user':copy_user_dict(users[0])})
         
     if(len(models.User.objects.filter(phone=phone)) > 0):
         return  resp(PHONE_USED)
     if(len(models.User.objects.filter(email=mail)) > 0):
         return  resp(MAIL_USED)
+    
+    # 如果有重名的username,用User里的ids来不区分
     maxids = models.User.objects.filter(name=username).order_by('-ids')
     ids = 0
     if(len(maxids) > 0):
@@ -58,51 +66,124 @@ def register(request):
         return resp(SYS_ERR)
     
     user.save()
-    sylredis.set_vcode(vcode)  
-    request.session['userid'] = user.id
+    sylredis.set_vcode(user.id, vcode)  
+    set_user_dict(request, user)
     
-    return resp(REG_SUCC, 1, {'user':{'id':user.id, 'name':user.name, 'ids':user.ids, 'status':user.status
-                                                                     }})
+    return resp(REG_SUCC, 1, {'user':copy_user_dict(user)})
 
 def vcode(request):
     params = get_cmd_params(request)
-    if()
+    if(len(params) != 1):
+        return resp(PARAM_NUM)
+    user_dict = get_user_dict(request)
+    if(user_dict):
+        vcode = sylredis.get_vcode(user_dict.get('id'))
+        if(vcode == params[0]):
+            user = models.User.objects.get(id=user_dict.get('id'))
+            user.pwd = hashlib.md5(str(user_dict.get('id')) + str(vcode)).hexdigest()
+            user.status = 1
+            user.save()
+            set_user_dict(request, user)
+            return resp(VCODE_SUCC, 1, {'user':copy_user_dict(user)})
+        else:
+            return resp(VCODE_ERR)
+        
+def logout(request):
+    user_dict = get_user_dict(request)
+    if(user_dict):
+        user = models.User.objects.get(id=user_dict['id'])
+        user.pwd = None
+        user.status = 0
+        user.save()
+        del request.session['user']
+    return resp(None, 1)
+
+def login(request):
+    
+    params = get_cmd_params(request)
+    err_msg = None
+    if (len(params) != 1) :
+        return resp(PARAM_NUM)
+    
+    isEmail = False
+    isPhone = False
+            
+    if (re.match(RE_PHONE, params[0])):
+            isPhone = True
+
+    elif (re.match(RE_MAIL, params[0])):
+            isEmail = True
+
+    if(not isPhone and not isEmail):
+        return resp(LOGIN_PARAM_INVALID)
+    
+    user_dict = get_user_dict(request)
+    if(user_dict):
+        persist_user = models.User.objects.get(id=user_dict['id'])
+        if(persist_user.status==1):
+            return resp('该用户已登录', 1, {'user':copy_user_dict(persist_user)})
+        elif(persist_user.phone == params[0] or persist_user.email == params[0]):
+            if(sylredis.get_vcode(persist_user.id)):
+                return resp('验证码已经发送至邮箱或手机，请查收', 1, {'user':copy_user_dict(persist_user)})
+        
+    users = None
+    if(isPhone):
+        users = models.User.objects.filter(phone=params[0])
+    if(isEmail):
+        users = models.User.objects.filter(email=params[0])
+    
+    if(users == None or len(users) == 0):
+        return resp(LOGIN_PARAM_NOEXISTS)
+    
+    # send vcode
+    vcode = get_vcode()
+    user = users[0]
+
+    
+    if(isPhone):
+        if(not send_sms.send_vcode(user.phone, user.name, vcode)):
+            return resp(SYS_ERR)
+    if(isEmail):
+        if(not send_mail.send_vcode(user.email, user.name, vcode)):
+            return resp(SYS_ERR)
+    sylredis.set_vcode(user.id, vcode)  
+    set_user_dict(request, user)
+    msg = PHONE_SENT if isPhone else MAIL_SENT
+    return resp(msg, 1, {'user':copy_user_dict(user)})
+
+    
+def signin(request):
+    pass
 
 def add_group(request):
-    isLogin = True
-    if not isLogin:
-        return resp('please login')
-    cmd = request.POST['cmd'].strip(' ')
-    cmds = cmd.split(' ')
+    params = get_cmd_params(request)
     err_msg = None
     
-    if (len(cmds) != 2) :
-            err_msg = 'parameter more or less!'
-    elif(len(cmds) == 2 and len(cmds[1]) >= 50):
-        err_msg = 'group name is too long!'
+    if (len(params) != 1) :
+            err_msg = PARAM_NUM
+    elif(len(params[0]) >= 50):
+        err_msg = GROUPNAME_LEN_LONG
 
     if(err_msg):
         return resp(err_msg)
     
-    if(len(models.Group.objects.filter(name=cmds[1])) > 0):
-        return  resp('group name has been used')
-    if(not request.session.get('userid')):
-        return resp('first login')
+    if(len(models.Group.objects.filter(name=params[0])) > 0):
+        return  resp(GROUPNAME_USED)
     
-    group = models.Group(name=cmds[1], manager=models.User(id=request.session['userid']))
+    group = models.Group(name=params[0], manager=models.User(id=get_user_dict(request)['id']))
     group.save()
-    return resp('group add success', 1)
+    return resp(ADDGROUP_SUCC, 1)
     
-
-def valid_user(request):
-    pass
 
 def apply_group(request):
-    cmd = request.POST['cmd'].strip(' ')
-    cmds = cmd.split(' ')
-    group = models.Group(name=cmds[1], status=0)
-    group.save()
-    return resp('add user success', 1)
+    params = get_cmd_params(request)
+    
+    if(not models.Group.objects.get(id=params[0])):
+            return resp(GROUP_NOT_EXISTS)
+    
+    group_user = models.GroupUser(group=models.Group(id=params[0]), user=models.User(id=get_user_dict(request)['id']))
+    group_user.save()
+    return resp(GROUP_USER_SUCC, 1)
 
 def valid_group_user(request):
     cmd = request.POST['cmd'].strip(' ')
@@ -111,64 +192,6 @@ def valid_group_user(request):
     user.save()
     return resp('add user success', 1)
 
-def login(request):
-    cmd = request.POST['cmd'].strip(' ')
-    cmds = cmd.split(' ')
-    err_msg = None
-    
-    if (len(cmds) != 2) :
-            err_msg = 'parameter more or less!'
-           
-    if (len(cmds) == 2 and len(cmds[1]) >= 50):
-            err_msg = 'email or phone is too long!' 
-    
-    if(err_msg):
-        return resp(err_msg)
-    
-    isEmail = False
-    isPhone = False
-            
-    if (re.match(r'^1[3|5|7|8|][0-9]{9}$', cmds[1])):
-            isPhone = True
-
-    elif (re.match(r'^[A-Z0-9a-z_%+-]+@[A-Za-z0-9-]+.[A-Za-z]{2,4}$', cmds[1])):
-            isEmail = True
-
-    if(isPhone):
-        # TODO: send sms
-        pass
-    if(isEmail):
-        # TODO: send email
-        pass
-    
-    if(not isPhone and not isEmail):
-        return resp('phone or email is invalid')
-    users = None
-    if(isPhone):
-        users = models.User.objects.filter(phone=cmds[1])
-    if(isEmail):
-        users = models.User.objects.filter(email=cmds[2])
-        
-    if(users == None or len(users.values()) == 0):
-        return resp('phone or email is not exists')
-        
-    if(len(users.values()) > 1):
-        pass  # system error
-    request.session['userid'] = users.values()[0]['id']
-    if(isPhone):
-        return resp('sms is sent,please valid', 1, {'user', users.values()[0]})
-    if(isEmail):
-        return resp('mail is sent,please valid', 1, {'user', users.values()[0]})
-    
-    
-def valid_login(request):
-    request.GET['pwd'].strip(' ')
-    
-
-    
-def logout(request):
-    del request.session['userid']
-    return resp('logout', 1)
 
 def applygroup(request):
     
@@ -191,33 +214,40 @@ def applygroup(request):
         return resp(err_msg)
     
     
-    if(not request.session.get('userid')):
+    if(not get_user_dict(request)):
         return resp('first login')
     # user = models.GroupUser.objects.get(user=models.User(id=request.session.get('userid')))
     # if(not models.GroupUser.objects.get(user=models.User(id=request.session.get('userid')))):
-    models.GroupUser(group=group, user=models.User(id=request.session.get('userid'))).save()
+    models.GroupUser(group=group, user=models.User(id=get_user_dict(request))).save()
     return resp('waiting for group manager check', 1)
 
-def get_user2group(userid):
-    users = models.GroupUser.objects.filter(user=models.User(id=userid))
-    
-def get_vcode():
-    return random.randint(1000, 9999) 
 
-def resp(msg, level=2, extend={}):
-    result = {'msg':msg, 'level':level}
-    result.update(extend)
-    return  HttpResponse(json.dumps(result))
+
+
+
 
 PARAM_NUM = '参数个数不正确'
 USERNAME_LEN_LONG = '用戶名太长'
 USERNAME_LEN_SHORT = '用户名太短'
+GROUPNAME_LEN_LONG = '群组名太长'
 USERNAME_FMT = '用户名格式不正确'
 PHONE_INV = '手机号不合法'
 MAIL_INV = '邮箱不合法'
 PHONE_USED = '手机号已被使用'
 MAIL_USED = '邮箱已被使用'
+GROUPNAME_USED = '群组名已存在'
 SYS_ERR = '系统错误，请与管理员联系'
 REG_SUCC = '注册成功，登录邮箱获取验证码'
+MAIL_SENT = '验证码已发送至邮箱'
+PHONE_SENT = '验证码已发送至手机'
+VCODE_ERR = '验证码错误'
+VCODE_SUCC = '验证成功'
+ADDGROUP_SUCC = '群组创建成功'
+GROUP_USER_SUCC = '等待管理员审核..'
+LOGIN_PARAM_INVALID = '手机或邮箱格式不正确'
+LOGIN_PARAM_NOEXISTS = '手机或邮箱不存在'
+GROUP_NOT_EXISTS = '该群组不存在'
+
+RE_USERNAME = r'^[a-zA-Z]+,[a-zA-Z]+$'
 RE_PHONE = r'^1[3|5|7|8|][0-9]{9}$'
 RE_MAIL = r'^[A-Z0-9a-z_%+-]+@[A-Za-z0-9-]+.[A-Za-z]{2,4}$'

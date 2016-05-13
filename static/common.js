@@ -1,6 +1,5 @@
 $(function() {
   syl = {
-    user: null,
     touserid: null,
     wnd: {
       list: null,
@@ -8,17 +7,35 @@ $(function() {
       index: 0,
       activeele: null,
       activeselected: 0
-
     },
     init: function() {
-      // this.login();
+      this.signin();
       // this.loadFile();
-      if (this.user == null) {
-        $('#stat').html('Not signed')
-      }
       this.registerKey();
       this.registerFocus();
       Mousetrap.bind('esc', this.escHandler);
+    },
+    signin: function() {
+      var user = get_user();
+      if (user) {
+        ajax_send({
+          id: user.id,
+          token: user.token,
+          status: user.status
+        }, 'cust/signin', function(data) {
+          ajax_main_resp(data, function(data) {
+            if (data.level == 1) {
+              set_user(data.user)
+              update_stat(data.user)
+            } else if (data.level == 2) {
+              update_stat(null);
+              remove_user();
+            }
+          });
+        });
+      } else {
+        update_stat(null);
+      }
     },
     registerFocus: function() {
       syl.wnd.list = $('.wnd');
@@ -414,8 +431,15 @@ function syl_command(event) {
         label: 'register',
         app: 'cust',
         value: 'Li,Lei 18848884888 lilei.gmail.com',
-        help: 'params--1:lastname,firstname 2:phone 3:email.<span style="color:red">(phone and email提交后不可修改)</span>',
+        help: 'params--1:lastname,firstname(real name) 2:phone 3:email.<span style="color:red">(phone and email提交后不可修改)</span>',
         response: syl_resp_register
+
+      }, {
+        label: 'vcode',
+        app: 'cust',
+        value: 'code',
+        help: 'params--1:验证码',
+        response: syl_resp_vcode
 
       }, {
         label: 'addgroup',
@@ -857,62 +881,6 @@ function syl_getCookie(name) {
   return cookieValue;
 }
 
-function syl_resp_register(data) {
-  if (data.level == 2) {
-    syl.showMsg(data.msg, data.level);
-  } else {
-    syl.showMsg(data.msg, 1);
-    $('#mask').css('display', 'none').empty();
-    syl.user = data.user;
-    var name = syl.user.name;
-    if (syl.user.ids > 0) {
-      name = name + '(' + syl.user.ids + ')'
-    }
-    var status = (syl.user.status == 0) ? 'inactive' : 'active';
-    $('#stat').html(name + '/' + status);
-  }
-}
-
-function syl_resp_login(data) {
-  if (data.level == 2) {
-    syl.showMsg(data.msg, data.level);
-  } else if (data.level == 1) {
-    syl.showMsg(data.msg, 1);
-    $('#mask').css('display', 'none').empty();
-    syl.user = data.user;
-    var name = syl.user.name;
-    if (syl.user.ids > 0) {
-      name = name + '(' + syl.user.ids + ')'
-    }
-    var status = (syl.user.status == 0) ? 'inactive' : 'active';
-    $('#stat').html(name + '/' + status);
-  }
-}
-
-function syl_resp_logout(data) {
-  syl.user = null;
-  $('#stat').html('Not signed');
-  $('#mask').css('display', 'none').empty();
-}
-
-function syl_resp_addgroup(data) {
-  if (data.level == 2) {
-    syl.showMsg(data.msg, data.level);
-  } else if (data.level == 1) {
-    syl.showMsg(data.msg, 1);
-    $('#mask').css('display', 'none').empty();
-  }
-}
-
-function syl_resp_applygroup(data) {
-  if (data.level == 2) {
-    syl.showMsg(data.msg, data.level);
-  } else if (data.level == 1) {
-    syl.showMsg(data.msg, 1);
-    $('#mask').css('display', 'none').empty();
-  }
-}
-
 function syl_chatsend() {
   if ($(syl.wnd.activeele).is($('#chat_textarea'))) {
     syl_chat_msg($('#chat_textarea').html());
@@ -930,4 +898,119 @@ function syl_switchwnd() {
     }
   }
   $(syl.wnd.list[index])[0].focus();
+}
+
+function syl_resp_register(data) {
+  ajax_mask_resp(data, function(data) {
+    if (data.level == 1) {
+      update_stat(data.user);
+      set_user(data.user);
+    }
+  });
+}
+
+function syl_resp_login(data) {
+  ajax_mask_resp(data, function(data) {
+    if (data.level == 1) {
+      update_stat(data.user);
+      set_user(data.user);
+    }
+  });
+}
+
+function syl_resp_logout(data) {
+  remove_user();
+  update_stat(null);
+  mask_empty();
+}
+
+function syl_resp_addgroup(data) {
+  ajax_mask_resp(data);
+}
+
+function syl_resp_applygroup(data) {
+  ajax_mask_resp(data);
+}
+
+function syl_resp_vcode(data) {
+  ajax_mask_resp(data, function(data) {
+    if (data.level == 1) {
+      set_user(data.user);
+      update_stat(data.user);
+    }
+  });
+}
+
+function get_user() {
+  var str = localStorage.getItem('user');
+  if (str) { return JSON.parse(str); }
+  return null;
+}
+
+function set_user(user) {
+  localStorage.setItem('user', JSON.stringify(user));
+}
+
+function remove_user() {
+  localStorage.clear();
+}
+
+function ajax_resp(data) {
+  if (data.level == 2) {
+    syl.showMsg(data.msg, data.level);
+  } else {
+    syl.showMsg(data.msg, 1);
+  }
+}
+
+function ajax_main_resp(data, fn) {
+  ajax_resp(data);
+  if (fn) {
+    fn(data);
+  }
+}
+
+function ajax_mask_resp(data, fn) {
+  ajax_resp(data);
+  if (data.level == 1) {
+    mask_empty();
+  }
+  if (fn) {
+    fn(data);
+  }
+}
+
+function update_stat(user) {
+  if (!user) {
+    $('#stat').html('No Signed');
+    return;
+  }
+  var name = user.name;
+  if (user.ids > 0) {
+    name = name + '(' + user.ids + ')'
+  }
+  $('#stat').html(
+          '<span style="color:' + (user.status == 1 ? 'green' : 'red') + '">'
+                  + name + '</span>');
+}
+
+function mask_empty() {
+  $('#mask').css('display', 'none').empty();
+}
+
+function ajax_send(params, url, fn) {
+  $.ajax({
+    type: 'POST',
+    data: params,
+    dataType: 'json',
+    url: url,
+    headers: {
+      'X-CSRFToken': syl_getCookie('csrftoken')
+    },
+    success: function(data) {
+      if (fn) {
+        fn(data);
+      }
+    }
+  });
 }

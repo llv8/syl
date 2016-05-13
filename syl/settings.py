@@ -51,6 +51,7 @@ MIDDLEWARE_CLASSES = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'syl.middleware.LoginMiddleware',
 ]
 
 ROOT_URLCONF = 'syl.urls'
@@ -142,11 +143,6 @@ LOGGING = {
     'filters': {
     },
     'handlers': {
-        'mail_admins': {
-            'level': 'ERROR',
-            'class': 'django.utils.log.AdminEmailHandler',
-            'include_html': True,
-        },
         'default': {
             'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
@@ -155,51 +151,75 @@ LOGGING = {
             'backupCount': 5,  # 备份份数
             'formatter':'standard',  # 使用哪种formatters日志格式
         },
-        'error': {
-            'level':'ERROR',
+        'core_handler': {
+            'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
-            'filename': '/var/log/syl/error.log',
-            'maxBytes':1024 * 1024 * 5,
-            'backupCount': 5,
-            'formatter':'standard',
+            'filename': '/var/log/syl/core.log',  # 日志输出文件
+            'maxBytes': 1024 * 1024 * 5,  # 文件大小 
+            'backupCount': 5,  # 备份份数
+            'formatter':'standard',  # 使用哪种formatters日志格式
+        },
+        'chat_handler': {
+            'level':'DEBUG',
+            'class':'logging.handlers.RotatingFileHandler',
+            'filename': '/var/log/syl/chat.log',  # 日志输出文件
+            'maxBytes': 1024 * 1024 * 5,  # 文件大小 
+            'backupCount': 5,  # 备份份数
+            'formatter':'standard',  # 使用哪种formatters日志格式
+        },
+        'cust_handler': {
+            'level':'DEBUG',
+            'class':'logging.handlers.RotatingFileHandler',
+            'filename': '/var/log/syl/cust.log',  # 日志输出文件
+            'maxBytes': 1024 * 1024 * 5,  # 文件大小 
+            'backupCount': 5,  # 备份份数
+            'formatter':'standard',  # 使用哪种formatters日志格式
+        },
+        'ws_handler': {
+            'level':'DEBUG',
+            'class':'logging.handlers.RotatingFileHandler',
+            'filename': '/var/log/syl/ws.log',  # 日志输出文件
+            'maxBytes': 1024 * 1024 * 5,  # 文件大小 
+            'backupCount': 5,  # 备份份数
+            'formatter':'standard',  # 使用哪种formatters日志格式
         },
         'console':{
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
             'formatter': 'standard'
-        },
-        'request_handler': {
-            'level':'DEBUG',
-            'class':'logging.handlers.RotatingFileHandler',
-            'filename': '/var/log/syl/script.log',
-            'maxBytes': 1024 * 1024 * 5,
-            'backupCount': 5,
-            'formatter':'standard',
-        },
-        'scprits_handler': {
-            'level':'DEBUG',
-            'class':'logging.handlers.RotatingFileHandler',
-            'filename':'/var/log/syl/script.log',
-            'maxBytes': 1024 * 1024 * 5,
-            'backupCount': 5,
-            'formatter':'standard',
         }
     },
     'loggers': {
+        '':{
+            'handlers': ['default', 'console'],
+            'level': 'DEBUG',
+            'propagate': False    
+        },
         'django': {
             'handlers': ['default', 'console'],
             'level': 'DEBUG',
             'propagate': False 
         },
-        'django.request': {
-            'handlers': ['request_handler'],
-            'level': 'DEBUG',
+        'core': {
+            'handlers': ['core_handler'],
+            'level': 'INFO',
             'propagate': False,
         },
-        'scripts': { 
-            'handlers': ['scprits_handler'],
+        'chat': {
+            'handlers': ['chat_handler'],
             'level': 'INFO',
-            'propagate': False
-        }
+            'propagate': False,
+        },
+        'cust': {
+            'handlers': ['cust_handler'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'ws': {
+            'handlers': ['ws_handler'],
+            'level': 'INFO',
+            'propagate': False,
+        }      
+
     } 
 }

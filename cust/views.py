@@ -2,10 +2,12 @@
 import hashlib
 import logging
 import re
+import time
 
 from cust import send_mail, send_sms
 from cust.views_util import get_cmd_params, resp, get_vcode, \
-     get_param, copy_user_dict, set_user_dict, get_user_dict
+ copy_user_dict, set_user_dict, get_user_dict, copy_groupuser_dict, \
+    copy_group_dict
 from util import sylredis
 
 from . import models
@@ -57,7 +59,7 @@ def register(request):
     ids = 0
     if(len(maxids) > 0):
         ids = maxids[0].ids + 1
-    user = models.User(name=username, phone=phone, email=mail, ids=ids)
+    user = models.User(name=username, phone=phone, email=mail, ids=ids, utime=time.time())
     
     # send vcode
     vcode = get_vcode()
@@ -82,9 +84,17 @@ def vcode(request):
             user = models.User.objects.get(id=user_dict.get('id'))
             user.pwd = hashlib.md5(str(user_dict.get('id')) + str(vcode)).hexdigest()
             user.status = 1
-            user.save()
+            user.utime = time.time()
+            
             set_user_dict(request, user)
-            return resp(VCODE_SUCC, 1, {'user':copy_user_dict(user)})
+            gus = models.GroupUser.objects.filter(user=models.User(id=user_dict.get('id')))
+            guids = [gu.id for gu in gus]
+            groupusers = models.GroupUser.objects.filter(group_id__in=guids, utime__ge=user.utime, status=1).exclude(user_id=user_dict.get('id'))
+            groups = set([group for group in gus])
+            groupuser_dicts = [copy_groupuser_dict(gu) for gu in groupusers]
+            group_dicts = [copy_group_dict(g) for g in groups]
+            user.save()
+            return resp(VCODE_SUCC, 1, {'user':copy_user_dict(user), 'userlist':groupuser_dicts, 'grouplist':group_dicts})
         else:
             return resp(VCODE_ERR)
         
@@ -120,7 +130,7 @@ def login(request):
     user_dict = get_user_dict(request)
     if(user_dict):
         persist_user = models.User.objects.get(id=user_dict['id'])
-        if(persist_user.status==1):
+        if(persist_user.status == 1):
             return resp('该用户已登录', 1, {'user':copy_user_dict(persist_user)})
         elif(persist_user.phone == params[0] or persist_user.email == params[0]):
             if(sylredis.get_vcode(persist_user.id)):
@@ -170,8 +180,10 @@ def add_group(request):
     if(len(models.Group.objects.filter(name=params[0])) > 0):
         return  resp(GROUPNAME_USED)
     
-    group = models.Group(name=params[0], manager=models.User(id=get_user_dict(request)['id']))
+    group = models.Group(name=params[0], manager=models.User(id=get_user_dict(request)['id']), utime=time.time())
     group.save()
+    groupuser = models.GroupUser(group=group, user=models.User(id=get_user_dict(request)['id']), status=1, utime=time.time())
+    groupuser.save()
     return resp(ADDGROUP_SUCC, 1)
     
 

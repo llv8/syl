@@ -11,6 +11,9 @@ function get_ws() {
       console.log('ws disConnected');
     };
     syl_websocket.onmessage = function(evt) {
+      if (evt) {
+        console.dir(evt);
+      }
       $('#chat_content').append('<p>' + evt.data);
     };
     syl_websocket.onerror = function(evt) {
@@ -21,6 +24,8 @@ function get_ws() {
   return syl_websocket;
 
 }
+
+get_ws();
 
 function syl_send(msg) {
   syl_websocket.send(msg);

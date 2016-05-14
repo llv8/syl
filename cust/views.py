@@ -88,9 +88,9 @@ def vcode(request):
             
             set_user_dict(request, user)
             gus = models.GroupUser.objects.filter(user=models.User(id=user_dict.get('id')))
-            guids = [gu.id for gu in gus]
-            groupusers = models.GroupUser.objects.filter(group_id__in=guids, utime__ge=user.utime, status=1).exclude(user_id=user_dict.get('id'))
-            groups = set([group for group in gus])
+            gids = [gu.group.id for gu in gus]
+            groupusers = models.GroupUser.objects.filter(group__id__in=gids, utime__gte=user.ltime, status__in=[-1, 1]).exclude(user__id=user_dict.get('id'))
+            groups = set([gu.group for gu in gus])
             groupuser_dicts = [copy_groupuser_dict(gu) for gu in groupusers]
             group_dicts = [copy_group_dict(g) for g in groups]
             user.save()
@@ -193,49 +193,12 @@ def apply_group(request):
     if(not models.Group.objects.get(id=params[0])):
             return resp(GROUP_NOT_EXISTS)
     
-    group_user = models.GroupUser(group=models.Group(id=params[0]), user=models.User(id=get_user_dict(request)['id']))
+    group_user = models.GroupUser(group=models.Group(id=params[0]), user=models.User(id=get_user_dict(request)['id']), utime=time.time())
     group_user.save()
     return resp(GROUP_USER_SUCC, 1)
 
-def valid_group_user(request):
-    cmd = request.POST['cmd'].strip(' ')
-    cmds = cmd.split(' ')
-    user = models.Group(name=cmds[1], status=0)
-    user.save()
-    return resp('add user success', 1)
-
-
-def applygroup(request):
-    
-    cmd = request.POST['cmd'].strip(' ')
-    cmds = cmd.split(' ')
-    err_msg = None
-    
-    if (len(cmds) != 2) :
-            err_msg = 'parameter more or less!'
-           
-    if (len(cmds) == 2 and len(cmds[1]) >= 50):
-            err_msg = 'group name is not exists'
-    
-    group = models.Group.objects.get(name=cmds[1])
-    
-    if(not group):
-        err_msg = 'group name is not exists' 
-    
-    if(err_msg):
-        return resp(err_msg)
-    
-    
-    if(not get_user_dict(request)):
-        return resp('first login')
-    # user = models.GroupUser.objects.get(user=models.User(id=request.session.get('userid')))
-    # if(not models.GroupUser.objects.get(user=models.User(id=request.session.get('userid')))):
-    models.GroupUser(group=group, user=models.User(id=get_user_dict(request))).save()
-    return resp('waiting for group manager check', 1)
-
-
-
-
+def approve_user(request):
+    pass
 
 
 PARAM_NUM = '参数个数不正确'

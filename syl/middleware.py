@@ -21,10 +21,11 @@ class LoginMiddleware:
                 else: 
                     return resp()
             return  resp(None, 1, {'user':get_user_dict(request)})
-        elif(request.path == '/cust/register' or request.path == '/cust/login'):
+        elif(request.path == '/cust/register' or request.path == '/cust/login' or request.path == '/cust/vcode'):
             pass
         else:
-            if(not get_user_dict(request)):
+            user_dict = get_user_dict(request)
+            if(not user_dict or user_dict.get('status') != 1 or not user_dict.get('token')):
                 return resp('请使用register或login命令注册或登录')
         return None
     

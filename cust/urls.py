@@ -22,6 +22,7 @@ urlpatterns = [
     url(r'^login', views.login),
     url(r'^signin', views.signin),
     url(r'^addgroup', views.add_group),
-    url(r'^applyuser', views.apply_group),
+    url(r'^applygroup', views.apply_group),
+    url(r'^approveuser', views.approve_user),
 
 ]

@@ -157,7 +157,7 @@ $(function() {
         'help': 'active window 4'
       },
       'alt+enter': {
-        'req': syl_chatsend,
+        'req': syl_chat_send,
         'help': 'submit chat message'
       },
       '?': {
@@ -235,14 +235,6 @@ $("#chat_textarea").bind("keydown", function(event) {
       }
     }
 
-  } else if (event.keyCode === 13) {
-    // range.collapse(true);
-    // sel.removeAllRanges();
-    // sel.addRange(range);
-
-    // length = $(this).html().length;
-    // this.focus();
-    // this.setSelectionRange(length, length);
   }
 }).autocomplete(
         {
@@ -253,13 +245,13 @@ $("#chat_textarea").bind("keydown", function(event) {
           source: function(request, response) {
             var term = request.term, results = [];
             if (term.indexOf("@") === 0 && term.split("@").length == 2) {
-              var userList = JSON.parse(localStorage.getItem('user_list'));
+              var userList = JSON.parse(localStorage.getItem('userlist'));
               var users = [];
 
               $.each(userList, function(i, n) {
-                var username = n.name;
+                var username = n.username;
                 if (n.ids) {
-                  username += '(' + n.ids + ')';
+                  username += '(' + n.userids + ')';
                 }
                 users.push({
                   'label': username,
@@ -316,10 +308,6 @@ $("#chat_textarea").bind("keydown", function(event) {
   var content = "<a>" + item.label + "</a>";
   return $("<li>").append(content).appendTo(ul);
 };
-
-function syl_get_userlist() {
-
-}
 
 function syl_activeElement() {
   $('#fkey').empty();
@@ -838,32 +826,25 @@ function syl_lastLine() {
 function syl_chat_send(event) {
   if (event.keyCode == 64 && $('#chat_content').val() == '') {
 
-    // localStorage.setItem('user_list','{"lv":{"id":"1"},"ven":{"id":"2"}}');
-    var userList = JSON.parse(localStorage.getItem('user_list'));
-
-    // localStorage.removeItem();
-    // localStorage.clear();
+    var userList = JSON.parse(localStorage.getItem('userlist'));
 
   } else if (event.keyCode == 64 && $('#chat_content').val() == '@') {
 
   } else if (event.keyCode == 13) {
-    ws_send();
-  }
+    if (syl.touserid) {
+      if (!$(syl.wnd.activeele).is($('#chat_textarea'))) return;
+      var cmd = 'SC';
+      var fromuser = get_user();
+      if (!fromuser || fromuser.status != 1 || !fromuser.token) return;
+      var from = fromuser.id;
+      var to = syl.touserid;
+      var content = $('#chat_textarea').html();
+      var msg = cmd + ' ' + from + ' ' + to + ' ' + content;
+      get_ws().send(msg);
 
-}
-
-function syl_updateUserList(updateUserList) {
-  var userList = JSON.parse(localStorage.getItem('user_list'));
-  for ( var key in updateUserList) {
-    if (updateUserList[key].status == 1) {
-      userList.setItem(key, {
-        "id": updateUserList[kye]["id"]
-      });
-    } else if (updateUserList[key].status == 2) {
-      userList.removeItem(key);
     }
-    console.log(key);
   }
+
 }
 
 function syl_getCookie(name) {
@@ -879,12 +860,6 @@ function syl_getCookie(name) {
     }
   }
   return cookieValue;
-}
-
-function syl_chatsend() {
-  if ($(syl.wnd.activeele).is($('#chat_textarea'))) {
-    syl_chat_msg($('#chat_textarea').html());
-  }
 }
 
 function syl_switchwnd() {
@@ -937,8 +912,64 @@ function syl_resp_vcode(data) {
     if (data.level == 1) {
       set_user(data.user);
       update_stat(data.user);
+      data = {
+        "msg": "\u9a8c\u8bc1\u6210\u529f",
+        "grouplist": [{
+          "id": 2,
+          "name": "chat1"
+        }],
+        "userlist": [{
+          "username": "lv,wen",
+          "status": 0,
+          "userids": 0,
+          "userid": 100041,
+          "groupid": 2,
+          "id": 1
+        }],
+        "user": {
+          "status": 1,
+          "token": "006da17210a62fb372c0a8b039dab7be",
+          "ids": 0,
+          "id": 100042,
+          "name": "lv,jing"
+        },
+        "level": 1
+      };
+      update_userlist(data.userlist);
+      update_grouplist(data.grouplist);
     }
   });
+}
+
+function update_locallist(list, key) {
+  if (list) {
+    var l = JSON.parse(localStorage.getItem(key));
+
+    if (l) {
+      var l_map = {};
+      for (var i = 0; i < l.length; i++) {
+        l_map[l[i].id] = l[i];
+      }
+
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].status == -1) {
+          delete l_map[list[i].id];
+        } else {
+          l_map[list[i].id] = list[i];
+        }
+      }
+      var update_l = [];
+      for ( var id in l_map) {
+        update_l.push(l_map[id]);
+      }
+      update_l.sort(function(a, b) {
+        return a.name > b.name;
+      });
+      localStorage.setItem(key, JSON.stringify(update_l));
+    } else {
+      localStorage.setItem(key, JSON.stringify(list));
+    }
+  }
 }
 
 function get_user() {

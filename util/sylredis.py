@@ -15,4 +15,3 @@ def set_vcode(userid, vcode):
 def get_vcode(userid):
     return get_redis().get(str(userid) + '_vcode')
 
-

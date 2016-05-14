@@ -39,7 +39,7 @@ def copy_user_dict(user):
     return {'id':user.id, 'name':user.name, 'ids':user.ids, 'token':user.pwd, 'status':user.status}
 
 def copy_groupuser_dict(groupuser):
-    return {'id':groupuser.id, 'userid':groupuser.user.id, 'userids':groupuser.user.ids, 'username':groupuser.user.name, 'groupid':groupuser.group.id, 'status':0}
+    return {'id':groupuser.id, 'userid':groupuser.user.id, 'userids':groupuser.user.ids, 'username':groupuser.user.name, 'groupid':groupuser.group.id, 'status':groupuser.status, 'online':1}
 
 def copy_group_dict(group):
     return {'id':group.id, 'name':group.name}

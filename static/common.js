@@ -178,8 +178,6 @@ $(function() {
         $('#mask').css('display', 'none').empty();
       } else if ($('#fkey').css('display') == 'block') {
         $('#fkey').css('display', 'none').empty();
-        console.log($('#fkey').css('display'));
-        console.log($('#fkey').html());
       } else {
         var parents = syl.wnd.activeele.parents();
         if (event.keyCode === 27) {
@@ -266,8 +264,9 @@ $("#chat_textarea").bind("keydown", function(event) {
                 var matcher = ".*"
                         + term.substr(1, term.length).split("").join(".*")
                         + ".*";
+                var re = new RegExp(matcher);
                 $.each(users, function(i, n) {
-                  if (n.label.match(matcher)) {
+                  if (n.label.match(re)) {
                     filterUsers.push(n);
                   }
                 });
@@ -436,11 +435,11 @@ function syl_command(event) {
         help: 'params--1:groupname',
         response: syl_resp_addgroup
       }, {
-        label: 'applygroup',
+        label: 'approveuser',
         app: 'cust',
         value: 'groupname',
         help: 'params--1:groupname',
-        response: syl_resp_applygroup
+        response: syl_resp_approveuser
       }, {
         label: 'login',
         app: 'cust',
@@ -460,7 +459,7 @@ function syl_command(event) {
   $('#mask').append(input).css('display', 'block');
   input[0].focus();
 
-  $("#cmd").autocomplete({
+  var cmd_obj = {
     minLength: 1,
     delay: 10,
     autoFocus: true,
@@ -472,7 +471,9 @@ function syl_command(event) {
     search: function(event, ui) {
       var cmd_tip = '';
       var cmd_line = $("#cmd").val();
-
+      if (cmd_line.match(/^approveuser\s+\S*$/)) {
+        $("#cmd").autocomplete(approveuser_obj);
+      }
       if (!cmd_line) {
         $("#msg").empty();
       }
@@ -493,11 +494,69 @@ function syl_command(event) {
       return false;
     },
     select: function(event, ui) {
-      $("#cmd").val(ui.item.label + ' ');
+      if (ui.item.label != 'approveuser') {
+        $("#cmd").val(ui.item.label + ' ');
+      } else {
+        $("#cmd").val(ui.item.label);
+      }
       syl.showMsg(ui.item.help, 1);
       return false;
     }
-  }).keydown(function(event) {
+  };
+
+  var approveuser_obj = {
+    source: function(request, response) {
+      var userlist = get_userlist();
+      var result = [];
+      if (userlist) {
+        var users = [];
+
+        manager = get_user();
+        for (var i = 0; i < userlist.length; i++) {
+          if (manager.id == userlist[i].managerid && userlist[i].status == 0) {
+            users.push(userlist[i]);
+          }
+        }
+        if (users) {
+          var filterUsers = [];
+          var cmd_line = $("#cmd").val();
+          if (!cmd_line.match(/^approveuser\s+$/)) {
+            var username = cmd_line.substr(
+                    cmd_line.match(/^approveuser\s+/)[0].length,
+                    cmd_line.length);
+            var matcher = ".*" + username.split("").join(".*") + ".*";
+            var re = new RegExp(matcher);
+            $.each(users, function(i, n) {
+              if (n.username.match(re)) {
+                filterUsers.push(n);
+              }
+            });
+          } else {
+            filterUsers = users;
+          }
+        }
+
+        $.each(filterUsers, function(i, n) {
+          result.push({
+            label: 'approveuser ' + userlist[i].username,
+            userid: userlist[i].id,
+            value: ' '
+          });
+        });
+
+        response(result);
+      }
+
+    },
+
+    search: function(event, ui) {
+      var cmd_line = $("#cmd").val();
+      if (!cmd_line.match(/^approveuser\s+\S*$/)) {
+        $("#cmd").autocomplete(cmd_obj);
+      }
+    },
+  }
+  $("#cmd").autocomplete(cmd_obj).keydown(function(event) {
     if (event.keyCode === $.ui.keyCode.TAB) {
       event.preventDefault();
     }
@@ -903,7 +962,7 @@ function syl_resp_addgroup(data) {
   ajax_mask_resp(data);
 }
 
-function syl_resp_applygroup(data) {
+function syl_resp_approveuser(data) {
   ajax_mask_resp(data);
 }
 
@@ -912,31 +971,8 @@ function syl_resp_vcode(data) {
     if (data.level == 1) {
       set_user(data.user);
       update_stat(data.user);
-      data = {
-        "msg": "\u9a8c\u8bc1\u6210\u529f",
-        "grouplist": [{
-          "id": 2,
-          "name": "chat1"
-        }],
-        "userlist": [{
-          "username": "lv,wen",
-          "status": 0,
-          "userids": 0,
-          "userid": 100041,
-          "groupid": 2,
-          "id": 1
-        }],
-        "user": {
-          "status": 1,
-          "token": "006da17210a62fb372c0a8b039dab7be",
-          "ids": 0,
-          "id": 100042,
-          "name": "lv,jing"
-        },
-        "level": 1
-      };
-      update_userlist(data.userlist);
-      update_grouplist(data.grouplist);
+      update_locallist(data.userlist, 'userlist');
+      update_locallist(data.grouplist, 'grouplist');
     }
   });
 }
@@ -970,6 +1006,12 @@ function update_locallist(list, key) {
       localStorage.setItem(key, JSON.stringify(list));
     }
   }
+}
+
+function get_userlist() {
+  var str = localStorage.getItem('userlist');
+  if (str) { return JSON.parse(str); }
+  return null;
 }
 
 function get_user() {

@@ -4,6 +4,7 @@ import logging
 import re
 import time
 
+
 from cust import send_mail, send_sms
 from cust.views_util import get_cmd_params, resp, get_vcode, \
  copy_user_dict, set_user_dict, get_user_dict, copy_groupuser_dict, \
@@ -111,7 +112,6 @@ def logout(request):
 def login(request):
     
     params = get_cmd_params(request)
-    err_msg = None
     if (len(params) != 1) :
         return resp(PARAM_NUM)
     
@@ -189,16 +189,29 @@ def add_group(request):
 
 def apply_group(request):
     params = get_cmd_params(request)
-    
     if(not models.Group.objects.get(id=params[0])):
             return resp(GROUP_NOT_EXISTS)
+    group = models.Group(id=params[0])
+    user = models.User(id=get_user_dict(request)['id'])
+    if(models.GroupUser.objects.filter(group=group, user=user)):
+        return resp(GROUP_USER_SUCC, 1)
     
     group_user = models.GroupUser(group=models.Group(id=params[0]), user=models.User(id=get_user_dict(request)['id']), utime=time.time())
     group_user.save()
     return resp(GROUP_USER_SUCC, 1)
 
 def approve_user(request):
-    pass
+    params = get_cmd_params(request)
+    
+    group = models.Group(id=params[0])
+    user = models.User(id=params[1])
+    groupuser = models.GroupUser.objects.get(group=group, user=user)
+    if(not groupuser):
+        return resp(GROUPUSER_NOT_EXISTS)
+    
+    groupuser.status = 1
+    groupuser.save()
+    return resp(APPROVE_SUCC, 1)
 
 
 PARAM_NUM = '参数个数不正确'
@@ -219,9 +232,11 @@ VCODE_ERR = '验证码错误'
 VCODE_SUCC = '验证成功'
 ADDGROUP_SUCC = '群组创建成功'
 GROUP_USER_SUCC = '等待管理员审核..'
+APPROVE_SUCC = '审核通过'
 LOGIN_PARAM_INVALID = '手机或邮箱格式不正确'
 LOGIN_PARAM_NOEXISTS = '手机或邮箱不存在'
 GROUP_NOT_EXISTS = '该群组不存在'
+GROUPUSER_NOT_EXISTS = '该群组成员不存在'
 
 RE_USERNAME = r'^[a-zA-Z]+,[a-zA-Z]+$'
 RE_PHONE = r'^1[3|5|7|8|][0-9]{9}$'

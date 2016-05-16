@@ -435,10 +435,16 @@ function syl_command(event) {
         help: 'params--1:groupname',
         response: syl_resp_addgroup
       }, {
-        label: 'approveuser',
+        label: 'applygroup',
         app: 'cust',
         value: 'groupname',
         help: 'params--1:groupname',
+        response: syl_resp_approveuser
+      }, {
+        label: 'approveuser',
+        app: 'cust',
+        value: 'username',
+        help: 'params--1:username',
         response: syl_resp_approveuser
       }, {
         label: 'login',
@@ -503,6 +509,59 @@ function syl_command(event) {
       return false;
     }
   };
+  
+  var applygroup_obj = {
+          source: function(request, response) {
+            var userlist = get_userlist();
+            var result = [];
+            if (userlist) {
+              var users = [];
+
+              manager = get_user();
+              for (var i = 0; i < userlist.length; i++) {
+                if (manager.id == userlist[i].managerid && userlist[i].status == 0) {
+                  users.push(userlist[i]);
+                }
+              }
+              if (users) {
+                var filterUsers = [];
+                var cmd_line = $("#cmd").val();
+                if (!cmd_line.match(/^approveuser\s+$/)) {
+                  var username = cmd_line.substr(
+                          cmd_line.match(/^approveuser\s+/)[0].length,
+                          cmd_line.length);
+                  var matcher = ".*" + username.split("").join(".*") + ".*";
+                  var re = new RegExp(matcher);
+                  $.each(users, function(i, n) {
+                    if (n.username.match(re)) {
+                      filterUsers.push(n);
+                    }
+                  });
+                } else {
+                  filterUsers = users;
+                }
+              }
+
+              $.each(filterUsers, function(i, n) {
+                result.push({
+                  label: 'approveuser ' + userlist[i].username,
+                  userid: userlist[i].id,
+                  value: ' '
+                });
+              });
+
+              response(result);
+            }
+
+          },
+
+          search: function(event, ui) {
+            var cmd_line = $("#cmd").val();
+            if (!cmd_line.match(/^approveuser\s+\S*$/)) {
+              $("#cmd").autocomplete(cmd_obj);
+            }
+          },
+        }
 
   var approveuser_obj = {
     source: function(request, response) {
@@ -582,6 +641,7 @@ function syl_command(event) {
         if (err_msg) {
           syl.showMsg(err_msg, 2);
         } else {
+          $('#cmd').attr('readonly', 'readonly');
           cmd.cmd_line = cmd_line;
           $.ajax({
             type: 'POST',
@@ -593,6 +653,9 @@ function syl_command(event) {
             },
             success: function(data) {
               cmd.response(data);
+              if ($('#cmd')) {
+                $('#cmd').removeAttr('readonly');
+              }
             }
           });
         }

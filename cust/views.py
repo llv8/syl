@@ -90,7 +90,7 @@ def vcode(request):
             gus = models.GroupUser.objects.filter(user=models.User(id=user_dict.get('id')))
             gids = [gu.group.id for gu in gus]
             groupusers = models.GroupUser.objects.filter(group__id__in=gids, utime__gte=user.ltime, status__in=[-1, 1]).exclude(user__id=user_dict.get('id'))
-            groups = set([gu.group for gu in gus])
+            groups = models.Group.objects.filter(status=1);
             groupuser_dicts = [copy_groupuser_dict(gu) for gu in groupusers]
             group_dicts = [copy_group_dict(g) for g in groups]
             user.save()

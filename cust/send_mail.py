@@ -8,8 +8,8 @@ import smtplib
 
 def send_vcode(to_addr, username, vcode):
     logger = logging.getLogger(__name__)
-    from_addr = "system@post.siyuel.com"
-    password = "lvwen2046821118"
+    from_addr = ""
+    password = ""
     smtp_server = "smtpdm.aliyun.com"
     content = '''
     您好{username}:您的验证码是{vcode},有效时长为60分钟。在浏览器中使用命令"vcode"验证。

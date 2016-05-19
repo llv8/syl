@@ -535,16 +535,16 @@ $(function() {
 		if (syl.touserid) {
 		    if (!$(syl.wnd.activeele).is($('#chat_textarea')))
 			return;
-		    var cmd = 'SC';
+		    var cmd = 'CHAT';
 		    var fromuser = get_obj('user');
 		    if (!fromuser || fromuser.status != 1 || !fromuser.token)
 			return;
 		    var from = fromuser.id;
 		    var to = syl.touserid;
 		    var content = $('#chat_textarea').html();
-		    var msg = cmd + ' ' + from + ' ' + to + ' ' + content;
-		    get_ws().send(msg);
-
+		    var msg = cmd + ' ' + from + ' ' + to + ' '
+			    + encodeURIComponent(content);
+		    syl.ws.send(msg);
 		}
 	    }
 

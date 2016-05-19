@@ -1,5 +1,5 @@
 $(function() {
-    syl = {
+    $.extend(syl, {
 	touserid : null,
 	wnd : {
 	    list : null,
@@ -9,10 +9,10 @@ $(function() {
 	    activeselected : 0
 	},
 	init : function() {
-
+	    this.key.init();
+	    this.util.signin();
 	},
-    }
-
+    });
     syl.init();
 
 });

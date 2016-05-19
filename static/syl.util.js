@@ -1,9 +1,6 @@
+syl = {}
 $(function() {
-    var util = {
-	init : function() {
-	    syl.util = this;
-	    this.signin();
-	},
+    syl.util = {
 	signin : function() {
 	    var user = this.get_obj('user');
 	    var th = this;
@@ -17,6 +14,7 @@ $(function() {
 			if (data.level == 1) {
 			    th.set_obj('user', data.user)
 			    th.update_stat(data.user)
+			    syl.ws.init();
 			} else if (data.level == 2) {
 			    th.update_stat(null);
 			    th.clear_storage();
@@ -173,5 +171,4 @@ $(function() {
 
 	}
     }
-    util.init();
 });

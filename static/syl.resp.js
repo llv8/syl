@@ -1,8 +1,5 @@
 $(function() {
-    var resp = {
-	init : function() {
-	    syl.resp = this;
-	},
+    syl.resp = {
 	applygroup : function(data) {
 	    syl.util.ajax_mask_resp(data);
 	},
@@ -39,13 +36,13 @@ $(function() {
 	vcode : function(data) {
 	    syl.util.ajax_mask_resp(data, function(data) {
 		if (data.level == 1) {
-		    syl.util.set_obj('user',data.user);
+		    syl.util.set_obj('user', data.user);
 		    syl.util.update_stat(data.user);
 		    syl.util.update_locallist(data.userlist, 'userlist');
 		    syl.util.update_locallist(data.grouplist, 'grouplist');
+		    syl.ws.init();
 		}
 	    });
 	}
     }
-    resp.init();
 });

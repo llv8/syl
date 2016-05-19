@@ -28,7 +28,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -84,7 +83,7 @@ DATABASES = {
         'NAME': 'syl',
         'USER': 'root',
         'PASSWORD': 'root',
-        'HOST': '127.0.0.1',
+        'HOST': '192.168.0.108',
         'PORT': '3306',
     }
 }
@@ -201,22 +200,22 @@ LOGGING = {
             'propagate': False 
         },
         'core': {
-            'handlers': ['core_handler'],
+            'handlers': ['core_handler', 'console'],
             'level': 'INFO',
             'propagate': False,
         },
         'chat': {
-            'handlers': ['chat_handler'],
+            'handlers': ['chat_handler', 'console'],
             'level': 'INFO',
             'propagate': False,
         },
         'cust': {
-            'handlers': ['cust_handler'],
+            'handlers': ['cust_handler', 'console'],
             'level': 'INFO',
             'propagate': False,
         },
         'ws': {
-            'handlers': ['ws_handler'],
+            'handlers': ['ws_handler', 'console'],
             'level': 'INFO',
             'propagate': False,
         }      

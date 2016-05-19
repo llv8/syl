@@ -1,10 +1,28 @@
+import random
+import re
+
+import redis
+
+
+pool = redis.ConnectionPool(host='192.168.0.108', port=6379, max_connections=10)
+def get_redis():
+    return redis.Redis(connection_pool=pool)
+
 MSG_CMD_TYPE = {
     'CHAT' : 1,
     'ACK' : 2
 };
 
+
+user_request = {}
+
 def web_socket_do_extra_handshake(request):
-    print(request)
+    if(re.match(r'^/syl\?userid=[0-9]+$', request.uri)):
+        userid = request.uri.split('=')[1]
+        token = random.randint(1000, 9999)
+        get_redis().set_str(userid + '_ws', token , 60)
+
+        request.ws_stream.send_message(token, binary=False)
 
 def web_socket_passive_closing_handshake(request):
     print(333)

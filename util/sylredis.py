@@ -6,12 +6,27 @@ Created on May 11, 2016
 import redis
 
 
-pool = redis.ConnectionPool(host='127.0.0.1', port=6379, max_connections=10)
+pool = redis.ConnectionPool(host='192.168.0.108', port=6379, max_connections=10)
 def get_redis():
     return redis.Redis(connection_pool=pool)
 def set_vcode(userid, vcode):
-    get_redis().set(str(userid) + '_vcode', vcode, 60 * 60)
+    set_str(str(userid) + '_vcode', vcode, 60 * 60)
     
 def get_vcode(userid):
-    return get_redis().get(str(userid) + '_vcode')
+    return get_str(str(userid) + '_vcode') 
+
+def get_str(key):
+    return get_redis().get(key)
+
+def set_str(key, val, expire=None):
+    if(expire):
+        get_redis().setex(str(key), val, expire)
+    else:
+        get_redis().set(str(key), val)
+        
+def del_str(key):
+    get_redis().delete(key)
+    
+def exi_str(key):
+    return get_redis().exists(key)
 

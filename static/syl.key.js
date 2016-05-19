@@ -1,7 +1,6 @@
 $(function() {
-    var key_handler = {
+    syl.key = {
 	init : function() {
-	    syl.key = this;
 	    this.__focus_handler();
 	    $.each(this.key_cnf(), function(i, n) {
 		Mousetrap.bind(n.key, n.req);
@@ -624,5 +623,4 @@ $(function() {
 	    }
 	}
     }
-    key_handler.init();
 });

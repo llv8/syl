@@ -13,7 +13,6 @@ from util import sylredis
 
 from . import models
 
-
 def register(request):
     logger = logging.getLogger(__name__)
     params = get_cmd_params(request)
@@ -131,7 +130,7 @@ def login(request):
     if(user_dict):
         persist_user = models.User.objects.get(id=user_dict['id'])
         if(persist_user.status == 1):
-            return resp('该用户已登录', 1, {'user':copy_user_dict(persist_user)})
+            return resp(persist_user.name + u'用户已登录,请先logout', 1, {'user':copy_user_dict(persist_user)})
         elif(persist_user.phone == params[0] or persist_user.email == params[0]):
             if(sylredis.get_vcode(persist_user.id)):
                 return resp('验证码已经发送至邮箱或手机，请查收', 1, {'user':copy_user_dict(persist_user)})
@@ -213,7 +212,16 @@ def approve_user(request):
     groupuser.save()
     return resp(APPROVE_SUCC, 1)
 
-
+def regws(request):
+    user_dict = get_user_dict(request)
+    if(user_dict):
+        userid = str(user_dict['id'])
+        num = sylredis.get_str(userid + '_ws')
+        if(num):
+            return resp(num, 1)
+    return resp(None, 2)
+        
+    
 PARAM_NUM = '参数个数不正确'
 USERNAME_LEN_LONG = '用戶名太长'
 USERNAME_LEN_SHORT = '用户名太短'

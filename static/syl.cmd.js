@@ -319,5 +319,4 @@ $(function() {
 	};
     }
     syl.key.command = command;
-    syl.key.init();
 });

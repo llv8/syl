@@ -10,7 +10,7 @@ def send_vcode(to_addr, username, vcode):
     logger = logging.getLogger(__name__)
     from_addr = ""
     password = ""
-    smtp_server = "smtpdm.aliyun.com"
+    smtp_server = ""
     content = '''
     您好{username}:您的验证码是{vcode},有效时长为60分钟。在浏览器中使用命令"vcode"验证。
     '''.format(username=username, vcode=vcode)
@@ -23,7 +23,7 @@ def send_vcode(to_addr, username, vcode):
     try:
         server.login(from_addr, password)
         server.sendmail(from_addr, [to_addr], msg.as_string())
-        logger.info(to_addr + 'send mail success')
+        logger.info(to_addr + ' send mail success')
         return True
     except Exception as e:
         logger.error(e)

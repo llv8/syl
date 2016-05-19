@@ -19,14 +19,13 @@ MSG_CMD_TYPE = {
 user_request = {}
 
 def web_socket_do_extra_handshake(request):
-    if(request in user_request[request]):
-        request.close()
-        
-    user_request[request] = {}
+    if(re.match(r'^/syl\?userid=[0-9]+$', request.uri)):
+        userid = request.uri.split('=')[1]
+        user_request[userid] = request
     
 
 def web_socket_passive_closing_handshake(request):
-    del user_request[request]
+    print('close')
 
 def web_socket_transfer_data(request):
     
@@ -63,15 +62,7 @@ def chat(request, params):
     frm = params[0]
     to = params[1]
     content = params[2]
-    channel = frm + '-' + to
-    ps = get_redis().pubsub()
-    ps.subscribe(channel)
-    thread.start_new_thread(__to, (ps, to, content))  
-    get_redis().publish(channel, content)
-    
-def __to(ps, to, content):
-    for item in ps.listen():
-        user_request[to].ws_stream.send_message(content, binary=False)
+    user_request[to].ws_stream.send_message(content, binary=False)
     
     
     

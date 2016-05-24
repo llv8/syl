@@ -1,6 +1,6 @@
 $(function() {
     $.extend(syl, {
-	touserid : null,
+	touser : null,
 	wnd : {
 	    list : null,
 	    activewnd : null,

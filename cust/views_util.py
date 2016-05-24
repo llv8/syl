@@ -15,16 +15,16 @@ def get_cmd_params(request):
         return []
     
 def get_user_dict(request):
-    return request.session.get('user')
+    return request.session.get('u')
 
 def set_user_dict(request, user):
-    request.session['user'] = copy_user_dict(user)
+    request.session['u'] = copy_user_dict(user)
 
 def get_vcode():
     return random.randint(1000, 9999) 
 
 def resp(msg=None, level=2, extend={}):
-    result = {'msg':msg, 'level':level}
+    result = {'m':msg, 'l':level}
     result.update(extend)
     return  HttpResponse(json.dumps(result))
 
@@ -36,10 +36,18 @@ def get_param(request, key):
         return ''
     
 def copy_user_dict(user):
-    return {'id':user.id, 'name':user.name, 'ids':user.ids, 'token':user.pwd, 'status':user.status}
+    return {'i':user.id, 'n':user.name, 'is':user.ids, 't':user.pwd, 's':user.status}
 
-def copy_groupuser_dict(groupuser):
-    return {'id':groupuser.id, 'userid':groupuser.user.id, 'userids':groupuser.user.ids, 'username':groupuser.user.name, 'groupid':groupuser.group.id, 'status':groupuser.status, 'managerid':groupuser.group.manager.id, 'online':1}
+
+def populate_user_dicts(groupuser, user_dicts):
+    if(not groupuser.user.id in user_dicts):
+        user_dicts[groupuser.user.id] = {'i':groupuser.user.id, 'is':groupuser.user.ids, 'n':groupuser.user.name, 'ol':0}  # ol:online
+    user_dict = user_dicts[groupuser.user.id]
+    if(not 'gus' in user_dict):  # gus:groupusers
+        user_dict['gus'] = {}
+    user_dict['gus'][groupuser.group.id] = {'gui':groupuser.id, 'm':groupuser.group.manager.id, 's':groupuser.status}
+        
+            
 
 def copy_group_dict(group):
-    return {'id':group.id, 'name':group.name}
+    return {'i':group.id, 'n':group.name}

@@ -2,20 +2,22 @@ syl = {}
 $(function() {
     syl.util = {
 	signin : function() {
-	    var user = this.get_obj('user');
+	    var user = this.get_obj('u');
 	    var th = this;
 	    if (user) {
 		this.ajax_send({
-		    id : user.id,
-		    token : user.token,
-		    status : user.status
+		    i : user.i,
+		    t : user.t,
+		    ts : user.ts,
+		    s : user.s
 		}, 'cust/signin', function(data) {
 		    th.ajax_main_resp(data, function(data) {
-			if (data.level == 1) {
-			    th.set_obj('user', data.user)
-			    th.update_stat(data.user)
-			    syl.ws.init();
-			} else if (data.level == 2) {
+			if (data.l == 1) {
+			    th.set_obj('u', data.u)
+			    th.update_stat(data.u)
+			    if (data.u.s == 1)
+				syl.ws.init();
+			} else if (data.l == 2) {
 			    th.update_stat(null);
 			    th.clear_storage();
 			}
@@ -43,35 +45,48 @@ $(function() {
 	    });
 	},
 
-	update_locallist : function(list, key) {
-	    if (list) {
-		var l = this.get_obj(key);
+	update_userlist : function(nul) {
+	    // data construct:
+	    // {userid1:{'i':val,'n':val,'is':val,'ol':val,'gus':{'groupuserid1':{{'gui':val,'m':val,'s':val}...}}...}
+	    var key = 'ul';
+	    if (nul) {
+		var ul = this.get_obj(key);
 
-		if (l) {
-		    var l_map = {};
-		    for (var i = 0; i < l.length; i++) {
-			l_map[l[i].id] = l[i];
-		    }
+		if (ul) {
 
-		    for (var i = 0; i < list.length; i++) {
-			if (list[i].status == -1) {
-			    delete l_map[list[i].id];
+		    for ( var nuid in nul) {
+			if (ul[nuid]) {
+			    var ngus = nul[nuid]['gus'];
+			    for ( var nguid in ngus) {
+				if (ngus[nguid]['s'] == -1) {
+				    delete ul[nuid]['gus'][nguid];
+				}
+				if (ngus[nguid]['s'] == 1) {
+				    ul[nuid]['gus'][nguid] = nul[nuid]['gus'][nguid];
+				}
+			    }
 			} else {
-			    l_map[list[i].id] = list[i];
+			    ul[nuid] = nul[nuid];
 			}
 		    }
-		    var update_l = [];
-		    for ( var id in l_map) {
-			update_l.push(l_map[id]);
+		    for ( var ulid in ul) {
+			if ($.isEmptyObject(ul[ulid]['gus']) && ul[ulid]['gus']) {
+			    delete ul[ulid]['gus'];
+			}
 		    }
-		    update_l.sort(function(a, b) {
-			return a.name > b.name;
-		    });
-		    this.set_obj(key, update_l);
+
+		    this.set_obj(key, ul);
 		} else {
-		    this.set_obj(key, list);
+		    this.set_obj(key, nul);
 		}
 	    }
+	},
+
+	update_grouplist : function(gl) {
+	    // data construct:
+	    // {groupid1:{'i':val,'n':val},groupid2:{'i':val,'n':val}...}
+	    var key = 'gl';
+	    this.set_obj(key, gl);
 	},
 
 	get_cookie : function(name) {
@@ -90,11 +105,13 @@ $(function() {
 	    return cookieValue;
 	},
 
-	get_grouped : function() {
-	    var userlist = get_obj('userlist');
+	get_joined_group : function() {
+	    var userlist = get_obj('ul');
 	    var set = new Set();
-	    for (var i = 0; i < userlist.length; i++) {
-		set.add(userlist[i].groupid);
+	    for ( var uid in userlist) {
+		for ( var gid in userlist[uid]['gus']) {
+		    set.add(gid);
+		}
 	    }
 	    return set;
 	},
@@ -116,10 +133,10 @@ $(function() {
 	},
 
 	ajax_resp : function(data) {
-	    if (data.level == 2) {
-		this.showMsg(data.msg, data.level);
+	    if (data.l == 2) {
+		this.showMsg(data.m, data.l);
 	    } else {
-		this.showMsg(data.msg, 1);
+		this.showMsg(data.m, 1);
 	    }
 	},
 
@@ -131,7 +148,7 @@ $(function() {
 	},
 	ajax_mask_resp : function(data, fn) {
 	    this.ajax_main_resp(data, fn);
-	    if (data.level == 1) {
+	    if (data.l == 1) {
 		this.mask_empty();
 	    }
 	},
@@ -146,9 +163,14 @@ $(function() {
 		return;
 	    }
 	    $('#stat').html(
-		    '<span style="color:'
-			    + (user.status == 1 ? 'green' : 'red') + '">'
-			    + user.name + '</span>');
+		    '<span style="color:' + (user.s == 1 ? 'green' : 'red')
+			    + '">' + user.n + '</span>');
+	},
+
+	keys : function(obj) {
+	    return $.map(obj, function(element, index) {
+		return index
+	    });
 	},
 
 	mask_empty : function() {
@@ -172,3 +194,24 @@ $(function() {
 	}
     }
 });
+
+Date.prototype.format = function(fmt) {
+    var o = {
+	"M+" : this.getMonth() + 1, // 月份
+	"d+" : this.getDate(), // 日
+	"h+" : this.getHours(), // 小时
+	"m+" : this.getMinutes(), // 分
+	"s+" : this.getSeconds(), // 秒
+	"q+" : Math.floor((this.getMonth() + 3) / 3), // 季度
+	"S" : this.getMilliseconds()
+    // 毫秒
+    };
+    if (/(y+)/.test(fmt))
+	fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "")
+		.substr(4 - RegExp.$1.length));
+    for ( var k in o)
+	if (new RegExp("(" + k + ")").test(fmt))
+	    fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k])
+		    : (("00" + o[k]).substr(("" + o[k]).length)));
+    return fmt;
+}

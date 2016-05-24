@@ -15,7 +15,6 @@ $(function() {
 		    value : 'code',
 		    help : 'params--1:验证码',
 		    response : syl.resp.vcode
-
 		}, {
 		    label : 'addgroup',
 		    app : 'cust',
@@ -110,7 +109,7 @@ $(function() {
 		var result = [];
 		if (grouplist) {
 		    var groups = [];
-		    var grouped = get_grouped();
+		    var grouped = get_joined_group();
 		    for (var i = 0; i < grouplist.length; i++) {
 			if (!grouped.has(grouplist[i].id)) {
 			    groups.push(grouplist[i]);

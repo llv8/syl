@@ -7,8 +7,8 @@ import time
 
 from cust import send_mail, send_sms
 from cust.views_util import get_cmd_params, resp, get_vcode, \
- copy_user_dict, set_user_dict, get_user_dict, copy_groupuser_dict, \
-    copy_group_dict
+ copy_user_dict, set_user_dict, get_user_dict, \
+    copy_group_dict, populate_user_dicts
 from util import sylredis
 
 from . import models
@@ -40,14 +40,14 @@ def register(request):
     if(len(users) > 0):
         # 如果数据库里有相同的手机号，邮箱和用户名，且redis里的该user的vcode存在，直接返回
         if(sylredis.get_vcode(users[0].id)):
-            return resp(MAIL_SENT, 1, {'user':copy_user_dict(users[0])})
+            return resp(MAIL_SENT, 1, {'u':copy_user_dict(users[0])})
         else:
             # 如果数据库里有相同的手机号，邮箱和用户名，且redis里没有该user的vcode,重新发送
             vcode = get_vcode()
             if(not send_mail.send_vcode(mail, username, vcode)):
                 return resp(SYS_ERR)
             else:
-                return resp(MAIL_SENT, 1, {'user':copy_user_dict(users[0])})
+                return resp(MAIL_SENT, 1, {'u':copy_user_dict(users[0])})
         
     if(len(models.User.objects.filter(phone=phone)) > 0):
         return  resp(PHONE_USED)
@@ -71,7 +71,7 @@ def register(request):
     sylredis.set_vcode(user.id, vcode)  
     set_user_dict(request, user)
     
-    return resp(REG_SUCC, 1, {'user':copy_user_dict(user)})
+    return resp(REG_SUCC, 1, {'u':copy_user_dict(user)})
 
 def vcode(request):
     params = get_cmd_params(request)
@@ -79,33 +79,48 @@ def vcode(request):
         return resp(PARAM_NUM)
     user_dict = get_user_dict(request)
     if(user_dict):
-        vcode = sylredis.get_vcode(user_dict.get('id'))
+        userid = user_dict.get('i')
+        vcode = sylredis.get_vcode(userid)
         if(vcode == params[0]):
-            user = models.User.objects.get(id=user_dict.get('id'))
-            user.pwd = hashlib.md5(str(user_dict.get('id')) + str(vcode)).hexdigest()
+            user = models.User.objects.get(id=userid)
+            user.pwd = hashlib.md5(str(userid) + str(vcode)).hexdigest()
             user.status = 1
             user.utime = time.time()
-            
+            new_user_dict = copy_user_dict(user)
             set_user_dict(request, user)
-            gus = models.GroupUser.objects.filter(user=models.User(id=user_dict.get('id')))
-            gids = [gu.group.id for gu in gus]
-            groupusers = models.GroupUser.objects.filter(group__id__in=gids, utime__gte=user.ltime, status__in=[-1, 1]).exclude(user__id=user_dict.get('id'))
-            groups = models.Group.objects.filter(status=1);
-            groupuser_dicts = [copy_groupuser_dict(gu) for gu in groupusers]
-            group_dicts = [copy_group_dict(g) for g in groups]
+            sylredis.set_user(new_user_dict)
             user.save()
-            return resp(VCODE_SUCC, 1, {'user':copy_user_dict(user), 'userlist':groupuser_dicts, 'grouplist':group_dicts})
+            new_user_dict = copy_user_dict(user)
+            new_user_dict['ts'] = time.time()  # ts:timestamp
+            resp_obj = {'u':new_user_dict}
+            resp_obj.update(__append_dict(userid, 0))
+            return resp(VCODE_SUCC, 1, resp_obj)
         else:
             return resp(VCODE_ERR)
-        
+
+def __append_dict(userid, timestamp):
+    timestamp = float(timestamp) if timestamp else 0
+    gus = models.GroupUser.objects.filter(user=models.User(id=userid), status=1)
+    groupusers = models.GroupUser.objects.filter(group__in=[gu.group for gu in gus], utime__gte=timestamp, status__in=[-1, 1]).exclude(user__id=userid)
+    allgroupusers = models.GroupUser.objects.filter(group__in=[gu.group for gu in gus], status__in=[1]).exclude(user__id=userid)
+    alluserids = set([str(gu.user.id) for gu in  allgroupusers])
+    sylredis.set_str(str(userid) + '_friendids', ','.join(alluserids))
+    user_dicts = {}
+    for groupuser in groupusers:
+        populate_user_dicts(groupuser, user_dicts)
+    # TODO: groups = models.Group.objects.filter(status=1, utime__gte=timestamp)
+    groups = models.Group.objects.filter(status=1, utime__gte=timestamp)
+    group_dicts = {g.id:copy_group_dict(g) for g in groups}
+    return {'gl':group_dicts, 'ul':user_dicts}
+    
 def logout(request):
     user_dict = get_user_dict(request)
     if(user_dict):
-        user = models.User.objects.get(id=user_dict['id'])
+        user = models.User.objects.get(id=user_dict['i'])
         user.pwd = None
         user.status = 0
         user.save()
-        del request.session['user']
+        del request.session['u']
     return resp(None, 1)
 
 def login(request):
@@ -128,12 +143,12 @@ def login(request):
     
     user_dict = get_user_dict(request)
     if(user_dict):
-        persist_user = models.User.objects.get(id=user_dict['id'])
+        persist_user = models.User.objects.get(id=user_dict['i'])
         if(persist_user.status == 1):
-            return resp(persist_user.name + u'用户已登录,请先logout', 1, {'user':copy_user_dict(persist_user)})
+            return resp(persist_user.name + u'用户已登录,请先logout', 1, {'u':copy_user_dict(persist_user)})
         elif(persist_user.phone == params[0] or persist_user.email == params[0]):
             if(sylredis.get_vcode(persist_user.id)):
-                return resp('验证码已经发送至邮箱或手机，请查收', 1, {'user':copy_user_dict(persist_user)})
+                return resp('验证码已经发送至邮箱或手机，请查收', 1, {'u':copy_user_dict(persist_user)})
         
     users = None
     if(isPhone):
@@ -158,11 +173,42 @@ def login(request):
     sylredis.set_vcode(user.id, vcode)  
     set_user_dict(request, user)
     msg = PHONE_SENT if isPhone else MAIL_SENT
-    return resp(msg, 1, {'user':copy_user_dict(user)})
+    return resp(msg, 1, {'u':copy_user_dict(user)})
 
     
 def signin(request):
-    pass
+    user_stat = __user_stat(request)
+    if(user_stat == 2):
+        return resp(None, 1, {'u':get_user_dict(request)})
+    if(user_stat == 3):
+        id = request.POST.get('i')
+        token = request.POST.get('t')
+        status = request.POST.get('s')
+        user = models.User.objects.get(id=id)
+        if(id == user.id and token == user.pwd and status == str(user.status)):
+            set_user_dict(request, user)
+            sylredis.set_user(get_user_dict(request))
+            user_stat = 1
+    
+    if(user_stat == 1):
+        user_dict = get_user_dict(request)
+        user_dict['ts'] = time.time()
+        timestamp = request.POST.get('ts')
+        resp_obj = {'u':user_dict} 
+        resp_obj.update(__append_dict(user_dict['i'], timestamp))
+        return resp(None, 1, resp_obj)
+    
+    return resp()
+
+def __user_stat(request):
+    # 1:valid,2:invalid,3:unlogin
+    user_dict = get_user_dict(request)
+    if(user_dict):
+        if(user_dict['s'] == 1 and user_dict['t']):
+            return 1
+        else:
+            return 2
+    return 3
 
 def add_group(request):
     params = get_cmd_params(request)
@@ -179,23 +225,23 @@ def add_group(request):
     if(len(models.Group.objects.filter(name=params[0])) > 0):
         return  resp(GROUPNAME_USED)
     
-    group = models.Group(name=params[0], manager=models.User(id=get_user_dict(request)['id']), utime=time.time())
+    group = models.Group(name=params[0], manager=models.User(id=get_user_dict(request)['i']), utime=time.time())
     group.save()
-    groupuser = models.GroupUser(group=group, user=models.User(id=get_user_dict(request)['id']), status=1, utime=time.time())
+    groupuser = models.GroupUser(group=group, user=models.User(id=get_user_dict(request)['i']), status=1, utime=time.time())
     groupuser.save()
     return resp(ADDGROUP_SUCC, 1)
-    
+
 
 def apply_group(request):
     params = get_cmd_params(request)
     if(not models.Group.objects.get(id=params[0])):
             return resp(GROUP_NOT_EXISTS)
     group = models.Group(id=params[0])
-    user = models.User(id=get_user_dict(request)['id'])
+    user = models.User(id=get_user_dict(request)['i'])
     if(models.GroupUser.objects.filter(group=group, user=user)):
         return resp(GROUP_USER_SUCC, 1)
     
-    group_user = models.GroupUser(group=models.Group(id=params[0]), user=models.User(id=get_user_dict(request)['id']), utime=time.time())
+    group_user = models.GroupUser(group=models.Group(id=params[0]), user=models.User(id=get_user_dict(request)['i']), utime=time.time())
     group_user.save()
     return resp(GROUP_USER_SUCC, 1)
 
@@ -214,11 +260,11 @@ def approve_user(request):
 
 def regws(request):
     user_dict = get_user_dict(request)
-    if(user_dict):
-        userid = str(user_dict['id'])
-        num = sylredis.get_str(userid + '_ws')
-        if(num):
-            return resp(num, 1)
+    token = request.POST['t']
+    if(user_dict and token):
+        userid = str(user_dict['i'])
+        if(sylredis.get_redis().hget(userid + '_user', 't') == token):
+            return resp(None, 1)
     return resp(None, 2)
         
     

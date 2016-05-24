@@ -5,17 +5,17 @@ $(function() {
 	},
 	register : function(data) {
 	    syl.util.ajax_mask_resp(data, function(data) {
-		if (data.level == 1) {
-		    syl.util.update_stat(data.user);
-		    syl.util.set_obj('user', data.user);
+		if (data.l == 1) {
+		    syl.util.update_stat(data.u);
+		    syl.util.set_obj('u', data.u);
 		}
 	    });
 	},
 	login : function(data) {
 	    syl.util.ajax_mask_resp(data, function(data) {
-		if (data.level == 1) {
-		    syl.util.update_stat(data.user);
-		    syl.util.set_obj('user', data.user);
+		if (data.l == 1) {
+		    syl.util.update_stat(data.u);
+		    syl.util.set_obj('u', data.u);
 		}
 	    });
 	},
@@ -35,11 +35,11 @@ $(function() {
 
 	vcode : function(data) {
 	    syl.util.ajax_mask_resp(data, function(data) {
-		if (data.level == 1) {
-		    syl.util.set_obj('user', data.user);
-		    syl.util.update_stat(data.user);
-		    syl.util.update_locallist(data.userlist, 'userlist');
-		    syl.util.update_locallist(data.grouplist, 'grouplist');
+		if (data.l == 1) {
+		    syl.util.set_obj('u', data.u);
+		    syl.util.update_stat(data.u);
+		    syl.util.update_userlist(data.ul, 'ul');
+		    syl.util.update_grouplist(data.gl, 'gl');
 		    syl.ws.init();
 		}
 	    });

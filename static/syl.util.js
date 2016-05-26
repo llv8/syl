@@ -29,6 +29,11 @@ $(function() {
 	},
 	ajax_send : function(params, url, fn) {
 	    var th = this;
+	    var user = syl.util.get_obj('u');
+	    if (user)
+		params = $.extend(params, {
+		    i : user.i
+		});
 	    $.ajax({
 		type : 'POST',
 		data : params,

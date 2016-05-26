@@ -563,7 +563,7 @@ $(function() {
 				    'border-radius' : '3px',
 				    'clear' : 'both'
 				}).html(content));
-
+			$('#chat_content')[0].scrollTop = $('#chat_content')[0].scrollTop + 100000000;
 			syl.ws.send(msg);
 		    }
 		}

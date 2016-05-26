@@ -1,5 +1,8 @@
 $(function() {
     $("#chat_textarea")
+	    .bind("keypress", function(event) {
+		event.stopPropagation();
+	    })
 	    .bind("keydown", function(event) {
 		if (event.keyCode === $.ui.keyCode.TAB) {
 		    event.preventDefault();

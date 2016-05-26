@@ -1,24 +1,26 @@
 $(function() {
     syl.fs = {
-	record:null，
-	Record:function(from,to,time,content){
-	    this.from=from;
-	    this.to=to;
-	    this.time=time;
-	    this.content=content;
+	__records : [],
+	Record : function(from, to, time, content) {
+	    this.from = from;
+	    this.to = to;
+	    this.time = time;
+	    this.content = content;
 	},
 	init : function() {
 	    window.requestFileSystem = window.requestFileSystem
 		    || window.webkitRequestFileSystem;
-	    this.req_quota();
+	    // this.req_quota();
 	},
 	read : function() {
-	    window.requestFileSystem(window.PERSISTENT,
+	    window.requestFileSystem(window.TEMPORARY,
 		    5 * 1024 * 1024 /* 5MB */, this.read_handler,
 		    this.error_handler);
+	    return this.__records;
 	},
-	write : function() {
-	    window.requestFileSystem(window.PERSISTENT,
+	write : function(records) {
+	    this.__records = records;
+	    window.requestFileSystem(window.TEMPORARY,
 		    5 * 1024 * 1024 /* 5MB */, this.write_handler,
 		    this.error_handler);
 	},
@@ -34,18 +36,17 @@ $(function() {
 	quota_handler : function(fs) {
 
 	},
-	
-	get_filename:function(){
-	    var from = syl.fs.record.from;
-	    var to = syl.fs.record.to;
-	    var filename = (from>to?to+'-'+from:from+'-'+to);// +'-'+new
-								// Date().format("yyyyMMdd");
+
+	get_filename : function() {
+	    var filename = 'chat' + '1234'; // (from>to?to+'-'+from:from+'-'+to)
+	    // +'-'+new
+	    // Date().format("yyyyMMdd");
 	    return filename;
 	},
 
 	read_handler : function(fs) {
 
-	    fs.root.getFile(this.get_filename(), {}, function(fileEntry) {
+	    fs.root.getFile(syl.fs.get_filename(), {}, function(fileEntry) {
 
 		fileEntry.file(function(file) {
 		    var reader = new FileReader();
@@ -55,14 +56,18 @@ $(function() {
 			// TODO:read the content assign to the argument
 			// "content";
 			var records = this.result.split('\n');
-			if(records.lenght>10){
-			    
-			}else{
-			    
+			var lastestrecords = records.lenght > 10 ? records
+				.slice(records.length - 10, records.length)
+				: records.slice(0, records.length);
+			syl.fs.__records = [];
+			for (var i = 0; i < lastestrecords.length; i++) {
+			    var r = lastestrecords[i].split(' ');
+			    syl.fs.__records.push(syl.fs.Record(r[0], r[1],
+				    r[2], r[3]));
 			}
-		    };
 
-		    reader.readAsText(file);
+			reader.readAsText(file);
+		    }
 		}, this.error_handler);
 
 	    }, this.error_handler);
@@ -70,12 +75,13 @@ $(function() {
 	},
 
 	write_handler : function(fs) {
-	    fs.root.getFile(this.get_filename(), {
+	    fs.root.getFile(syl.fs.get_filename(), {
 		create : true
 	    }, function(fileEntry) {
 
 		fileEntry.createWriter(function(fileWriter) {
 		    fileWriter.onwriteend = function(e) {
+			syl.fs.__records = [];
 			console.log('Write completed.');
 		    };
 		    fileWriter.onerror = function(e) {
@@ -85,11 +91,17 @@ $(function() {
 		    // var bb = window.BlobBuilder || window.WebKitBlobBuilder;
 		    // bb.append('Lorem Ipsum');
 		    // fileWriter.write(bb.getBlob('text/plain'));
-		    var record = syl.fs.record;
-		    var msg = record.from+' '+record.to+' '+record.time+' '+record.content+'\n';
+		    var records = syl.fs.__records;
+		    var msg = '';
+		    for (var i = 0; i < records.length; i++) {
+			var record = records[i];
+			msg += record.from + ' ' + record.to + ' '
+				+ record.time + ' ' + record.content + '\n';
+		    }
 		    fileWriter.seek(fileWriter.length);
-		    var blob = new Blob([ msg ]);
-		    blob.type = 'text/plain';
+		    var blob = new Blob([ msg ], {
+			type : 'text/plain'
+		    });
 		    fileWriter.write(blob);
 
 		}, this.error_handler);
@@ -97,30 +109,8 @@ $(function() {
 	    }, this.error_handler);
 	},
 
-	error_handler : function() {
-	    var msg = '';
-
-	    switch (e.code) {
-	    case FileError.QUOTA_EXCEEDED_ERR:
-		msg = 'QUOTA_EXCEEDED_ERR';
-		break;
-	    case FileError.NOT_FOUND_ERR:
-		msg = 'NOT_FOUND_ERR';
-		break;
-	    case FileError.SECURITY_ERR:
-		msg = 'SECURITY_ERR';
-		break;
-	    case FileError.INVALID_MODIFICATION_ERR:
-		msg = 'INVALID_MODIFICATION_ERR';
-		break;
-	    case FileError.INVALID_STATE_ERR:
-		msg = 'INVALID_STATE_ERR';
-		break;
-	    default:
-		msg = 'Unknown Error';
-		break;
-	    }
-	    console.log('Error: ' + msg);
+	error_handler : function(e) {
+	    console.log(e.name + ': ' + e.message);
 	}
 
     }

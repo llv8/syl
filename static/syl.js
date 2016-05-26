@@ -10,6 +10,7 @@ $(function() {
 	},
 	init : function() {
 	    this.key.init();
+	    this.fs.init();
 	    this.util.signin();
 	},
     });

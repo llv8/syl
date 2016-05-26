@@ -4,7 +4,6 @@ import logging
 import re
 import time
 
-
 from cust import send_mail, send_sms
 from cust.views_util import get_cmd_params, resp, get_vcode, \
  copy_user_dict, set_user_dict, get_user_dict, \
@@ -12,6 +11,7 @@ from cust.views_util import get_cmd_params, resp, get_vcode, \
 from util import sylredis
 
 from . import models
+
 
 def register(request):
     logger = logging.getLogger(__name__)
@@ -69,7 +69,7 @@ def register(request):
     
     user.save()
     sylredis.set_vcode(user.id, vcode)  
-    set_user_dict(request, user)
+    # set_user_dict(request, user)
     
     return resp(REG_SUCC, 1, {'u':copy_user_dict(user)})
 
@@ -78,27 +78,28 @@ def vcode(request):
     if(len(params) != 1):
         return resp(PARAM_NUM)
     user_dict = get_user_dict(request)
-    if(user_dict):
-        userid = user_dict.get('i')
-        vcode = sylredis.get_vcode(userid)
+    id = request.POST.get('i')
+    if(id):
+        vcode = sylredis.get_vcode(id)
         if(vcode == params[0]):
-            user = models.User.objects.get(id=userid)
-            user.pwd = hashlib.md5(str(userid) + str(vcode)).hexdigest()
+            user = models.User.objects.get(id=id)
+            user.pwd = hashlib.md5(str(id) + str(vcode)).hexdigest()
             user.status = 1
             user.utime = time.time()
-            new_user_dict = copy_user_dict(user)
-            set_user_dict(request, user)
-            sylredis.set_user(new_user_dict)
+            user_dict = copy_user_dict(user)
+            user_dict['ts'] = time.time()
+            set_user_dict(request, user_dict)
+            sylredis.set_user(user_dict)
+            resp_obj = {'u':user_dict}
+            resp_obj.update(__append_dict(id))
             user.save()
-            new_user_dict = copy_user_dict(user)
-            new_user_dict['ts'] = time.time()  # ts:timestamp
-            resp_obj = {'u':new_user_dict}
-            resp_obj.update(__append_dict(userid, 0))
             return resp(VCODE_SUCC, 1, resp_obj)
         else:
             return resp(VCODE_ERR)
+    else:
+        return resp(SYS_ERR)
 
-def __append_dict(userid, timestamp):
+def __append_dict(userid, timestamp=0):
     timestamp = float(timestamp) if timestamp else 0
     gus = models.GroupUser.objects.filter(user=models.User(id=userid), status=1)
     groupusers = models.GroupUser.objects.filter(group__in=[gu.group for gu in gus], utime__gte=timestamp, status__in=[-1, 1]).exclude(user__id=userid)
@@ -124,11 +125,9 @@ def logout(request):
     return resp(None, 1)
 
 def login(request):
-    
     params = get_cmd_params(request)
     if (len(params) != 1) :
         return resp(PARAM_NUM)
-    
     isEmail = False
     isPhone = False
             
@@ -140,16 +139,14 @@ def login(request):
 
     if(not isPhone and not isEmail):
         return resp(LOGIN_PARAM_INVALID)
-    
-    user_dict = get_user_dict(request)
-    if(user_dict):
-        persist_user = models.User.objects.get(id=user_dict['i'])
-        if(persist_user.status == 1):
-            return resp(persist_user.name + u'用户已登录,请先logout', 1, {'u':copy_user_dict(persist_user)})
-        elif(persist_user.phone == params[0] or persist_user.email == params[0]):
-            if(sylredis.get_vcode(persist_user.id)):
-                return resp('验证码已经发送至邮箱或手机，请查收', 1, {'u':copy_user_dict(persist_user)})
-        
+    user = __user_stat(request)
+    if(user):
+        if(user.status == 1):
+            if(user.phone == params[0] or user.email == params[0]):
+                resp(user.name + u'用户已登录', 1, {'u':copy_user_dict(user)})
+            else:
+                resp(user.name + u'用户已登录,请先logout', 1, {'u':copy_user_dict(user)})
+                
     users = None
     if(isPhone):
         users = models.User.objects.filter(phone=params[0])
@@ -162,7 +159,12 @@ def login(request):
     # send vcode
     vcode = get_vcode()
     user = users[0]
-
+    
+    if(sylredis.get_vcode(user.id)):
+        return resp('验证码已经发送至邮箱或手机，请查收', 1, {'u':copy_user_dict(user)})
+    
+    if(not valid_vcode_times(user.id)):
+        return resp(VCODE_TIMES)
     
     if(isPhone):
         if(not send_sms.send_vcode(user.phone, user.name, vcode)):
@@ -170,45 +172,64 @@ def login(request):
     if(isEmail):
         if(not send_mail.send_vcode(user.email, user.name, vcode)):
             return resp(SYS_ERR)
+    incr_vcode_times(user.id)
     sylredis.set_vcode(user.id, vcode)  
     set_user_dict(request, user)
     msg = PHONE_SENT if isPhone else MAIL_SENT
     return resp(msg, 1, {'u':copy_user_dict(user)})
 
+def valid_vcode_times(userid):
+    key = str(userid) + '__' + time.strftime('%d')
+    times = sylredis.get_str(key)
+    if(times):
+        if(int(times) >= 3):
+            return False
+    else:
+        sylredis.set_str(key, 0, 24 * 60 * 60)
+    return True
+        
+def incr_vcode_times(userid):
+    key = str(userid) + '__' + time.strftime('%d')
+    sylredis.get_redis().incrby(key, 1)
+    
     
 def signin(request):
-    user_stat = __user_stat(request)
-    if(user_stat == 2):
-        return resp(None, 1, {'u':get_user_dict(request)})
-    if(user_stat == 3):
-        id = request.POST.get('i')
-        token = request.POST.get('t')
-        status = request.POST.get('s')
-        user = models.User.objects.get(id=id)
-        if(id == user.id and token == user.pwd and status == str(user.status)):
-            set_user_dict(request, user)
-            sylredis.set_user(get_user_dict(request))
-            user_stat = 1
-    
-    if(user_stat == 1):
-        user_dict = get_user_dict(request)
-        user_dict['ts'] = time.time()
-        timestamp = request.POST.get('ts')
+    user = __user_stat(request)
+    if(user):
+        user_dict = copy_user_dict(user)
         resp_obj = {'u':user_dict} 
-        resp_obj.update(__append_dict(user_dict['i'], timestamp))
+        if(user.pwd and user.status == 1):
+            timestamp = request.POST.get('ts')
+            resp_obj.update(__append_dict(user_dict['i'], timestamp))
+            user_dict['ts'] = time.time()
+            set_user_dict(request, user_dict)
+            user.save()
         return resp(None, 1, resp_obj)
-    
-    return resp()
+    else:
+        return resp()
 
 def __user_stat(request):
-    # 1:valid,2:invalid,3:unlogin
-    user_dict = get_user_dict(request)
-    if(user_dict):
-        if(user_dict['s'] == 1 and user_dict['t']):
-            return 1
-        else:
-            return 2
-    return 3
+    id = request.POST.get('i')
+    token = request.POST.get('t')
+    status = request.POST.get('s')
+    if(id and token and status):
+        user = models.User.objects.get(id=id)
+        if(user):
+            if(token == user.pwd and int(status) == user.status and user.status == 1):
+                user_dict = get_user_dict(request)
+                if(user_dict):
+                    if(user_dict['i'] == int(id) and token == user_dict['t'] and int(status) == user_dict['s']):
+                        return user
+                else:
+                    set_user_dict(request, user)
+                    sylredis.set_user(get_user_dict(request))
+                    return user
+            elif(token == user.pwd and int(status) == user.status and user.status == 0):
+                return user
+            else:
+                user.pwd = None
+                user.status = 0
+                user.save()
 
 def add_group(request):
     params = get_cmd_params(request)
@@ -291,6 +312,7 @@ LOGIN_PARAM_INVALID = '手机或邮箱格式不正确'
 LOGIN_PARAM_NOEXISTS = '手机或邮箱不存在'
 GROUP_NOT_EXISTS = '该群组不存在'
 GROUPUSER_NOT_EXISTS = '该群组成员不存在'
+VCODE_TIMES = '发送验证码超过当天次数'
 
 RE_USERNAME = r'^[a-zA-Z]+,[a-zA-Z]+$'
 RE_PHONE = r'^1[3|5|7|8|][0-9]{9}$'

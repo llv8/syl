@@ -1,8 +1,8 @@
 $(function() {
     syl.ws = {
-	url : 'ws://192.168.0.102:8889/syl',
+	url : 'ws://192.168.0.103:8889/syl',
 	ws : null,
-	cmd : new Set([ 'CHAT', 'CHECK_OL', 'DISPATCH_OL' ]),
+	cmd : new Set([ 'CHAT', 'CHECK_OL', 'DISPATCH_OL', 'RECV_LL' ]),
 	init : function() {
 	    if (!this.ws || this.ws.readyState != this.ws.OPEN) {
 		var user = syl.util.get_obj('u');
@@ -69,6 +69,7 @@ $(function() {
 			'border-radius' : '3px',
 			'clear' : 'both'
 		    }).html(decodeURIComponent(params[1])));
+	    $('#chat_content')[0].scrollTop = $('#chat_content')[0].scrollTop + 100000000;
 	},
 	send : function(line) {
 	    this.init();
@@ -113,6 +114,7 @@ $(function() {
 		return;
 	    var userlist = syl.util.get_obj('ul');
 	    userlist[params[0]]['ol'] = 0;
+	    syl.util.set_obj('ul', userlist);
 	}
     }
 });

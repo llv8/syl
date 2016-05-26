@@ -55,6 +55,12 @@ MIDDLEWARE_CLASSES = [
 
 ROOT_URLCONF = 'syl.urls'
 
+# SESSION_ENGINE="django.contrib.sessions.backends.cache"
+# SESSION_ENGINE="django.contrib.sessions.backends.cached_db"
+# SESSION_ENGINE="django.contrib.sessions.backends.file"
+# SESSION_FILE_PATH=xxxx  //默认写到tmp目录下
+SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',

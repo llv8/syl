@@ -279,24 +279,14 @@ $(function() {
 
 					$('#cmd').attr('readonly', 'readonly');
 					cmd.cmd_line = cmd_line;
-					$
-						.ajax({
-						    type : 'POST',
-						    data : 'cmd=' + cmd_line,
-						    dataType : 'json',
-						    url : cmd.app + '/'
-							    + cmd.label,
-						    headers : {
-							'X-CSRFToken' : syl.util
-								.get_cookie('csrftoken')
-						    },
-						    success : function(data) {
-							cmd.response(data);
-							if ($('#cmd')) {
-							    $('#cmd')
-								    .removeAttr(
-									    'readonly');
-							}
+					syl.util.ajax_send({
+					    cmd : cmd_line
+					}, cmd.app + '/' + cmd.label,
+						function(data) {
+						    cmd.response(data);
+						    if ($('#cmd')) {
+							$('#cmd').removeAttr(
+								'readonly');
 						    }
 						});
 				    }

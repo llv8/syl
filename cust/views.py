@@ -158,6 +158,9 @@ def login(request):
     # send vcode
     vcode = get_vcode()
     user = users[0]
+    user.status = 0
+    user.pwd = None
+    __save_u(user)
     
     if(sylredis.get_vcode(user.id)):
         return resp('验证码已经发送至邮箱或手机，请查收', 1, {'u':copy_user_dict(user)})
@@ -228,8 +231,9 @@ def __save_u(user):
     sylredis.set_user(copy_user_dict(user))
 
 def __get_u(uid):
-    user = models.User.objects.get(id=id)
+    user = models.User.objects.get(id=uid)
     sylredis.set_user(copy_user_dict(user))
+    return user
 
 def add_group(request):
     params = get_cmd_params(request)

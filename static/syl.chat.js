@@ -87,9 +87,12 @@ $(function() {
 			    return false;
 			}
 		    }).autocomplete("instance")._renderItem = function(ul, item) {
-	var tip = $("<span>").html(item.value).css("color", "#B8B8B8");
-	var tip_html = $("<div>").append(tip).html();
-	var content = "<a>" + item.label + "</a>";
+	var content = $('<a>')
+		.css(
+			{
+			    'color' : syl.util.get_obj('ul')[item.userid]['ol'] == 1 ? 'green'
+				    : 'red'
+			}).html(item.label);
 	return $("<li>").append(content).appendTo(ul);
     };
 });

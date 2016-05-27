@@ -1,6 +1,6 @@
 $(function() {
     syl.ws = {
-	url : 'ws://192.168.0.103:8889/syl',
+	url : 'ws://192.168.0.104:8889/syl',
 	ws : null,
 	cmd : new Set([ 'CHAT', 'CHECK_OL', 'DISPATCH_OL', 'RECV_LL' ]),
 	init : function() {

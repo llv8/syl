@@ -4,8 +4,6 @@ import random
 import re
 
 import simplejson as json
-from cust import models
-
 
 def get_cmd_params(request):
     cmd = get_param(request, 'cmd')
@@ -15,13 +13,11 @@ def get_cmd_params(request):
     else:
         return []
     
-def get_user_dict(request):
-    return request.session.get('u')
+def get_s_uid(request):
+    return request.session.get('uid')
 
-def set_user_dict(request, user):
-    if isinstance(user, models.User):
-        user = copy_user_dict(user)
-    request.session['u'] = user
+def set_s_uid(request, uid):
+    request.session['uid'] = uid
 
 def get_vcode():
     return random.randint(1000, 9999) 

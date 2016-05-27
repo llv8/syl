@@ -16,8 +16,6 @@ $(function() {
 		    }, 'cust/regws', function(data) {
 			if (data.l == 1) {
 			    console.log('ws connected');
-			    syl.ws.check_ol();
-			    syl.ws.dispatch_ol();
 			} else {
 			    th.ws.close();
 			    console.log('ws connect failure');
@@ -75,14 +73,6 @@ $(function() {
 	    this.init();
 	    this.ws.send(line);
 	},
-	check_ol : function() {
-	    var ids = syl.util.keys(syl.util.get_obj('ul'));
-	    var cmd = 'CHECK_OL';
-	    if (ids && ids.length > 0) {
-		var msg = cmd + ' ' + ids.join(' ');
-		this.send(msg);
-	    }
-	},
 	check_ol_resp : function(params) {
 	    if ($.isEmptyObject(params))
 		return;
@@ -91,16 +81,6 @@ $(function() {
 		userlist[params[i]]['ol'] = 1;
 	    }
 	    syl.util.set_obj('ul', userlist);
-	},
-	dispatch_ol : function() {
-	    var userlist = syl.util.get_obj('ul');
-	    var ol_users = $.map(userlist, function(element, index) {
-		if (element['ol'] == 1)
-		    return index
-	    });
-	    var cmd = 'DISPATCH_OL';
-	    var msg = cmd + ' ' + ol_users.join(' ');
-	    this.send(msg);
 	},
 	dispatch_ol_resp : function(params) {
 	    if ($.isEmptyObject(params))

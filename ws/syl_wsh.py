@@ -1,9 +1,11 @@
 from __builtin__ import eval
-import random
 import re
 import thread
+import time
 
 import redis
+from Queue import Queue
+
 
 pool = redis.ConnectionPool(host='192.168.0.108', port=6379, max_connections=10)
 def get_redis():
@@ -17,34 +19,73 @@ CMD_CNF = set([
 user_request = {}
 request_user = {}
 die_users = []
+add_users = Queue(1000)
+
 def web_socket_do_extra_handshake(request):
     if(re.match(r'^/syl\?i=[0-9]+&t=[a-z0-9]+$', request.uri)):
         param = request.uri.split('?')[1]
         params = param.split('&') 
-        userid = params[0].split('=')[1]
+        uid = params[0].split('=')[1]
         token = params[1].split('=')[1]
-        if(token == get_redis().hget(userid + '_user', 't')):
-            user_request[userid] = request
-            request_user[request] = userid
+        if(token == get_redis().hget(uid + '_user', 't')):
+            __add_user(uid, request)
             return
     request.ws_stream.close_connection(0, 'illegal connect')
-    
+
+def __add_uid_req(uid, request):
+    ts = time.time()
+    user_request[uid] = {'req':request, 'ts':ts}
+    request_user[request] = {'uid':uid, 'ts':ts}
     
 def web_socket_passive_closing_handshake(request):
     print(request_user[request] + ' closed')
-    userid = request_user[request]
-    cmd = 'RECV_LL'
-    friendids = get_redis().get(userid + '_friendids')
+    if(request_user.has_key(request)):
+        uid = request_user[request]
+        die_users.push({'uid':uid, 'ts':time.time()})
+    
+def __add_user(uid, request):
+    add_users.put({'uid':uid, 'req':request, 'ts':time.time()})
+    
+def __remove_user(uid):
+    if(user_request.has_key(uid)):
+        request = user_request[uid]
+        del user_request[uid]
+        if(request_user.has_key(request)):
+            del request_user[request]
+   
+def __get_ol(uid):
+    cmd = 'CHECK_OL'
+    friendids = get_redis().get(uid + '_friendids')
     ids = friendids.split(',')
+    ols = []
     for id in ids:
         if(user_request.has_key(id)):
-            print(id)
-            print(user_request[id])
-            print(dir(user_request[id]))
-            user_request[id].ws_stream.send_message(cmd + ' ' + userid, binary=False)
-            del user_request[userid]
-            del request_user[request]
-    
+            ols.append(uid)  
+    if(ols):
+        __send_msg(uid, cmd + ' ' + ' '.join(ols))
+                   
+def __remove_notice(uid):
+    cmd = 'RECV_LL'
+    friendids = get_redis().get(uid + '_friendids')
+    ids = friendids.split(',')
+    for id in ids:
+        __send_msg(id, cmd + ' ' + uid)
+
+def __add_notice(uid):
+    cmd = 'DISPATCH_OL'
+    friendids = get_redis().get(uid + '_friendids')
+    ids = friendids.split(',')
+    for id in ids:
+        __send_msg(id, cmd + ' ' + uid)
+
+def __send_msg(uid, msg):
+    if(user_request.has_key(uid)):
+        try:
+            user_request[uid].ws_stream.send_message(msg, binary=False)
+            return True
+        except Exception as e:
+            die_users.push({'uid':uid, 'ts':time.time()})
+
 
 def web_socket_transfer_data(request):
     try:
@@ -60,7 +101,40 @@ def web_socket_transfer_data(request):
     except Exception as e:
         print(e)
     
+
+def clear_thread():
+    while True:
+        user_dict = die_users.pop()
+        if(user_dict):
+            uid = user_dict['uid']
+            ts = float(user_dict['ts'])
+            ud = user_request[uid]
+            if(float(ud['ts'] <= ts)):
+                __remove_notice(uid)
+                __remove_user(uid)
+        else:
+            time.sleep(30)
+            
+def add_thread():
+     while True:
+        user_dict = add_users.get_nowait()
+        if(user_dict):
+            uid = user_dict['uid']
+            request = user_dict['req']
+            ts = user_dict['ts']
+            if(user_request.has_key(uid) and float(user_request[uid]['ts']) > float(ts)):
+                pass
+            else:
+                __add_uid_req(uid, request)
+                __add_notice(uid)
+                __get_ol(uid)            
+        else:
+            time.sleep(30)
         
+thread.start_new_thread (clear_thread)
+thread.start_new_thread (add_thread)
+
+
 def ws_dispatch(line, request):
     params = re.split('\s+', line.strip())
     if(params):
@@ -73,26 +147,7 @@ def chat(request, params, cmd):
     frm = params[0]
     to = params[1]
     content = params[2]
-    if(user_request.has_key(to)):
-        user_request[to].ws_stream.send_message(cmd + ' ' + frm + ' ' + content, binary=False)
-    else:
-        pass
-    # request.ws_stream.send_message(cmd, binary=False)
-        
-def check_ol(request, params, cmd):
-    ols = []
-    for uid in params:
-        if(user_request.has_key(uid)):
-            ols.append(uid)
-    if(ols):
-        request.ws_stream.send_message(cmd + ' ' + ' '.join(ols), binary=False)
-        
-def dispatch_ol(request, params, cmd):
-    ol_userid = request_user[request]
-    for id in params:
-        if(user_request.has_key(id)):
-            user_request[id].ws_stream.send_message(cmd + ' ' + ol_userid, binary=False)
-            request.ws_stream.send_message(cmd, binary=False)
+    __send_msg(to, cmd + ' ' + frm + ' ' + content)
         
     
         

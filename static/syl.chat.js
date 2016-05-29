@@ -38,7 +38,7 @@ $(function() {
 				    }
 				    users.push({
 					'label' : username,
-					'userid' : n.i
+					'userid' : i
 				    });
 				});
 
@@ -75,6 +75,7 @@ $(function() {
 			select : function(event, ui) {
 			    $(this).html('@' + ui.item.label + ':');
 			    syl.touser = syl.util.get_obj('ul')[ui.item.userid];
+			    syl.touser['i'] = ui.item.userid;
 			    if (event.keyCode === 13) {
 				var range = document.createRange();
 				var sel = window.getSelection();

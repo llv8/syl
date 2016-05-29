@@ -98,52 +98,52 @@ $(function() {
 		    $("#cmd").val(ui.item.label);
 		}
 		syl.util.showMsg(ui.item.help, 1);
+		Mousetrap.trigger('space');
 		return false;
 	    }
 	};
 
 	var applygroup_obj = {
 	    source : function(request, response) {
-		var grouplist = get_obj('grouplist');
+		var grouplist = syl.util.get_obj('gl');
 
 		var result = [];
-		if (grouplist) {
-		    var groups = [];
-		    var grouped = get_joined_group();
-		    for (var i = 0; i < grouplist.length; i++) {
-			if (!grouped.has(grouplist[i].id)) {
-			    groups.push(grouplist[i]);
-			}
+		var groups = [];
+		var grouped = syl.util.get_joined_group();
+		for ( var key in grouplist) {
+		    if (!grouped.has(key)) {
+			grouplist[key]['i'] = key;
+			groups.push(grouplist[key]);
 		    }
-		    if (groups) {
-			var filterGroups = [];
-			var cmd_line = $("#cmd").val();
-			if (!cmd_line.match(/^applygroup\s+$/)) {
-			    var groupname = cmd_line.substr(cmd_line
-				    .match(/^applygroup\s+/)[0].length,
-				    cmd_line.length);
-			    var matcher = single_match(groupname);
-			    var re = new RegExp(matcher);
-			    $.each(groups, function(i, n) {
-				if (n.name.match(re)) {
-				    filterGroups.push(n);
-				}
-			    });
-			} else {
-			    filterGroups = groups;
-			}
-		    }
-
-		    $.each(filterGroups, function(i, n) {
-			result.push({
-			    label : 'applygroup ' + filterGroups[i].name,
-			    groupid : filterGroups[i].id,
-			    value : ' '
-			});
-		    });
-
-		    response(result);
 		}
+		if (groups) {
+		    var filterGroups = [];
+		    var cmd_line = $("#cmd").val();
+		    if (!cmd_line.match(/^applygroup\s+$/)) {
+			var groupname = cmd_line.substr(cmd_line
+				.match(/^applygroup\s+/)[0].length,
+				cmd_line.length);
+			var matcher = syl.util.single_match(groupname);
+			var re = new RegExp(matcher);
+			$.each(groups, function(i, n) {
+			    if (n.n.match(re)) {
+				filterGroups.push(n);
+			    }
+			});
+		    } else {
+			filterGroups = groups;
+		    }
+		}
+
+		$.each(filterGroups, function(i, n) {
+		    result.push({
+			label : 'applygroup ' + filterGroups[i].n,
+			groupid : filterGroups[i].i,
+			value : ' '
+		    });
+		});
+
+		response(result);
 
 	    },
 
@@ -162,49 +162,45 @@ $(function() {
 
 	var approveuser_obj = {
 	    source : function(request, response) {
-		var userlist = get_obj('userlist');
+		var approveuserlist = syl.util.get_obj('aul');
+		var grouplist = syl.util.get_obj('gl');
 		var result = [];
-		if (userlist) {
-		    var users = [];
+		var users = [];
 
-		    manager = get_obj('user');
-		    for (var i = 0; i < userlist.length; i++) {
-			if (manager.id == userlist[i].managerid
-				&& userlist[i].status == 0) {
-			    users.push(userlist[i]);
-			}
-		    }
-		    if (users) {
-			var filterUsers = [];
-			var cmd_line = $("#cmd").val();
-			if (!cmd_line.match(/^approveuser\s+$/)) {
-			    var username = cmd_line.substr(cmd_line
-				    .match(/^approveuser\s+/)[0].length,
-				    cmd_line.length);
-			    var matcher = single_match(username);
-			    var re = new RegExp(matcher);
-			    $.each(users, function(i, n) {
-				if (n.username.match(re)) {
-				    filterUsers.push(n);
-				}
-			    });
-			} else {
-			    filterUsers = users;
-			}
-		    }
-
-		    $.each(filterUsers, function(i, n) {
-			result.push({
-			    label : 'approveuser ' + filterUsers[i].username
-				    + ' apply for ' + filterUsers[i].groupname,
-			    userid : filterUsers[i].id,
-			    value : ' '
+		manager = syl.util.get_obj('u');
+		for ( var key in approveuserlist) {
+		    users.push(approveuserlist[key]);
+		}
+		if (users) {
+		    var filterUsers = [];
+		    var cmd_line = $("#cmd").val();
+		    if (!cmd_line.match(/^approveuser\s+$/)) {
+			var username = cmd_line.substr(cmd_line
+				.match(/^approveuser\s+/)[0].length,
+				cmd_line.length);
+			var matcher = syl.util.single_match(username);
+			var re = new RegExp(matcher);
+			$.each(users, function(i, n) {
+			    if (n.n.match(re)) {
+				filterUsers.push(n);
+			    }
 			});
-		    });
-
-		    response(result);
+		    } else {
+			filterUsers = users;
+		    }
 		}
 
+		$.each(filterUsers, function(i, n) {
+		    result.push({
+			label : 'approveuser ' + filterUsers[i].n + ' ('
+				+ filterUsers[i].gn + ')',
+			userid : filterUsers[i].i,
+			groupid : filterUsers[i].gi,
+			value : ' '
+		    });
+		});
+
+		response(result);
 	    },
 
 	    search : function(event, ui) {
@@ -215,89 +211,75 @@ $(function() {
 	    },
 	    select : function(event, ui) {
 		$(this).autocomplete('option', 'userid', ui.item.userid);
+		$(this).autocomplete('option', 'groupid', ui.item.groupid);
 		$("#cmd").val(ui.item.label + ' ');
+
 		return false;
 	    }
-	}
-	$("#cmd")
-		.autocomplete(cmd_obj)
-		.keydown(function(event) {
-		    if (event.keyCode === $.ui.keyCode.TAB) {
-			event.preventDefault();
-		    }
-		})
-		.keypress(
-			function(event) {
-			    if (event.keyCode === 13) {
-				var cmd_line = $("#cmd").val();
-				var cmd = null;
-				$.each(CMD_CNF, function(i, n) {
-				    if (cmd_line.match('^' + n.label)) {
-					cmd = n;
+	};
+
+	$("#cmd").autocomplete(cmd_obj).keydown(function(event) {
+	    if (event.keyCode === $.ui.keyCode.TAB) {
+		event.preventDefault();
+	    }
+	}).keypress(
+		function(event) {
+		    if (event.keyCode === 13) {
+			var cmd_line = $("#cmd").val();
+			var cmd = null;
+			$.each(CMD_CNF, function(i, n) {
+			    if (cmd_line.match('^' + n.label)) {
+				cmd = n;
+			    }
+			});
+
+			if (!cmd) {
+			    syl.util.showMsg('Can not find command', 2);
+			} else {
+			    var err_msg = '';
+
+			    if (cmd.valid) {
+				err_msg = cmd.valid(cmd_line);
+			    }
+
+			    if (err_msg) {
+				syl.util.showMsg(err_msg, 2);
+			    } else {
+
+				if (cmd_line.match(/applygroup\s+/)) {
+				    var groupid = $('#cmd').autocomplete(
+					    "instance").options.groupid;
+				    cmd_line = 'apply_group ' + groupid;
+				}
+
+				if (cmd_line.match(/approveuser\s+/)) {
+				    var groupid = $('#cmd').autocomplete(
+					    "instance").options.groupid;
+				    var userid = $('#cmd').autocomplete(
+					    "instance").options.userid;
+				    cmd_line = 'approve_user ' + groupid + ' '
+					    + userid;
+				}
+
+				$('#cmd').attr('readonly', 'readonly');
+				cmd.cmd_line = cmd_line;
+				syl.util.ajax_send({
+				    cmd : cmd_line
+				}, cmd.app + '/' + cmd.label, function(data) {
+				    cmd.response(data);
+				    if ($('#cmd')) {
+					$('#cmd').removeAttr('readonly');
 				    }
 				});
-
-				if (!cmd) {
-				    syl.util.showMsg('Can not find command', 2);
-				} else {
-				    var err_msg = '';
-
-				    if (cmd.valid) {
-					err_msg = cmd.valid(cmd_line);
-				    }
-
-				    if (err_msg) {
-					syl.util.showMsg(err_msg, 2);
-				    } else {
-
-					if (cmd_line.match(/applygroup\s+/)) {
-					    groupname = cmd_line.replace(
-						    /applygroup\s+/, '').trim();
-					    var grouplist = get_obj('grouplist');
-					    for (var i = 0; i < grouplist.length; i++) {
-						if (grouplist[i].name.trim() == groupname) {
-						    cmd_line = 'applygroup '
-							    + grouplist[i].id;
-						    break;
-						}
-					    }
-					}
-
-					if (cmd_line.match(/approveuser\s+/)) {
-					    username = cmd_line.replace(
-						    /approveuser\s+/, '')
-						    .trim();
-					    var userlist = get_obj('userlist');
-					    for (var i = 0; i < grouplist.length; i++) {
-						if (userlist[i].username.trim() == username) {
-						    cmd_line = 'approveuser '
-							    + userlist[i].userid;
-						    break;
-						}
-					    }
-					}
-
-					$('#cmd').attr('readonly', 'readonly');
-					cmd.cmd_line = cmd_line;
-					syl.util.ajax_send({
-					    cmd : cmd_line
-					}, cmd.app + '/' + cmd.label,
-						function(data) {
-						    cmd.response(data);
-						    if ($('#cmd')) {
-							$('#cmd').removeAttr(
-								'readonly');
-						    }
-						});
-				    }
-				}
 			    }
-			}).keyup(function(event) {
-		    if (event.keyCode === 27) {
-			syl.util.showMsg();
-			$('#mask').css('display', 'none').empty();
+			}
 		    }
-		}).autocomplete("instance")._renderItem = function(ul, item) {
+		}).keyup(function(event) {
+	    if (event.keyCode === 27) {
+		syl.util.showMsg();
+		$('#mask').css('display', 'none').empty();
+	    }
+	}).autocomplete("instance")._renderItem = function(ul, item) {
 	    $(ul).css('font-size', '25px');
 	    var tip = $("<span>").html(item.value).css("color", "#B8B8B8");
 

@@ -3,16 +3,18 @@ import hashlib
 import logging
 import re
 import time
-
+import thread
 from cust import send_mail, send_sms
 from cust.views_util import get_cmd_params, resp, get_vcode, \
  copy_user_dict, \
     copy_group_dict, populate_user_dicts, set_s_uid, get_s_uid
 from util import sylredis
+import simplejson as json
 
 from . import models
+from util.sylredis import get_redis
 
-
+NOTICE = ['APPLYGROUP', 'APPROVEUSER']
 def register(request):
     logger = logging.getLogger(__name__)
     params = get_cmd_params(request)
@@ -96,6 +98,8 @@ def vcode(request):
     else:
         return resp(SYS_ERR)
 
+
+        
 def __append_dict(userid, timestamp=0):
     timestamp = float(timestamp) if timestamp else 0
     gus = models.GroupUser.objects.filter(user=models.User(id=userid), status=1)
@@ -259,29 +263,33 @@ def add_group(request):
 
 def apply_group(request):
     params = get_cmd_params(request)
-    if(not models.Group.objects.get(id=params[0])):
-            return resp(GROUP_NOT_EXISTS)
-    group = models.Group(id=params[0])
-    user = models.User(id=get_s_uid(request))
-    if(models.GroupUser.objects.filter(group=group, user=user)):
-        return resp(GROUP_USER_SUCC, 1)
-    
-    group_user = models.GroupUser(group=models.Group(id=params[0]), user=models.User(id=get_s_uid(request)), utime=time.time())
-    group_user.save()
+    try:
+        group = models.Group.objects.get(id=params[0])
+    except Exception as e:
+        return resp(GROUP_NOT_EXISTS)
+    uid = get_s_uid(request)
+    uname = sylredis.get_redis().hget(str(uid) + '_user', 'n')
+    user = models.User(id=uid)
+    if(not models.GroupUser.objects.filter(group=group, user=user)):
+        group_user = models.GroupUser(group=models.Group(id=params[0]), user=models.User(id=get_s_uid(request)), utime=time.time())
+        group_user.save()
+    # t: 1--实时类型，2--有过期时间的类型
+    msg = {'cmd':'APPLY_GROUP', 'uid':user.id, 'to':group.manager_id, 'un':uname, 'gid':group.id, 't':2, 'ex':time.time() + 7 * 24 * 60 * 60}
+    sylredis.get_redis().lpush('notice', json.dumps(msg))
     return resp(GROUP_USER_SUCC, 1)
 
 def approve_user(request):
     params = get_cmd_params(request)
-    
-    group = models.Group(id=params[0])
-    user = models.User(id=params[1])
-    groupuser = models.GroupUser.objects.get(group=group, user=user)
-    if(not groupuser):
+    try:
+        group = models.Group(id=int(params[0]))
+        user = models.User(id=int(params[1]))
+        groupuser = models.GroupUser.objects.get(group=group, user=user)
+    except Exception as e:
         return resp(GROUPUSER_NOT_EXISTS)
     
     groupuser.status = 1
     groupuser.save()
-    return resp(APPROVE_SUCC, 1)
+    return resp(APPROVE_SUCC, 1, {'uid':user.id})
 
 def regws(request):
     uid = str(get_s_uid(request))

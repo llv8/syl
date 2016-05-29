@@ -38,6 +38,14 @@ $(function() {
 		'key' : 'L',
 		'req' : th.move_r,
 		'help' : 'extend window right'
+	    }, {
+		'key' : 'p',
+		'req' : th.open_popup,
+		'help' : 'open popup'
+	    }, {
+		'key' : 'x',
+		'req' : th.close_popup,
+		'help' : 'close popup'
 	    },
 
 	    {
@@ -537,7 +545,7 @@ $(function() {
 			return;
 		    var cmd = 'CHAT';
 		    var fromuser = syl.util.get_obj('u');
-		    if (!fromuser || fromuser.s != 1 || !fromuser.t)
+		    if (fromuser.s != 1 || !fromuser.t)
 			return;
 		    var from = fromuser.i;
 		    var to = syl.touser.i;
@@ -545,8 +553,12 @@ $(function() {
 		    var content = $('#chat_textarea').html();
 		    content = content.replace(/@[a-zA-Z0-9,]+:/, '');
 		    if (content && to && from) {
-			var msg = cmd + ' ' + from + ' ' + to + ' '
-				+ encodeURIComponent(content);
+			var msg = {
+			    'cmd' : cmd,
+			    'from' : from,
+			    'to' : to,
+			    'msg' : content
+			};
 			$('#chat_textarea').empty();
 			var time = new Date().format('yyyy-MM-dd hh:mm:ss');
 			$('#chat_content').append($('<div>').css({
@@ -569,6 +581,20 @@ $(function() {
 		}
 	    }
 
+	},
+
+	open_popup : function() {
+	    $('#popup').css('display', 'block');
+	    var popup = $('#popup')[0];
+	    popup.style.top = document.body.scrollTop
+		    + document.body.clientHeight - popup.clientHeight - 4 - 20
+		    + "px";
+	    popup.style.left = document.body.scrollLeft
+		    + document.body.clientWidth - popup.clientWidth - 4 + "px";
+	},
+
+	close_popup : function() {
+	    $('#popup').css('display', 'none');
 	},
 
 	max_or_min_wnd : function() {

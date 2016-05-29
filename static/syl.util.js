@@ -13,8 +13,10 @@ $(function() {
 		}, 'cust/signin', function(data) {
 		    th.ajax_main_resp(data, function(data) {
 			if (data.l == 1) {
-			    th.set_obj('u', data.u)
-			    th.update_stat(data.u)
+			    th.set_obj('u', data.u);
+			    th.update_stat(data.u);
+			    th.update_userlist(data.ul);
+			    th.update_grouplist(data.gl);
 			    if (data.u.s == 1)
 				syl.ws.init();
 			} else if (data.l == 2) {
@@ -53,9 +55,10 @@ $(function() {
 	update_userlist : function(nul) {
 	    // data construct:
 	    // {userid1:{'i':val,'n':val,'is':val,'ol':val,'gus':{'groupuserid1':{{'gui':val,'m':val,'s':val}...}}...}
-	    var key = 'ul';
+
 	    if (nul) {
-		var ul = this.get_obj(key);
+		var key = 'ul';
+		var ul = syl.util.get_obj(key);
 
 		if (ul) {
 
@@ -80,18 +83,22 @@ $(function() {
 			}
 		    }
 
-		    this.set_obj(key, ul);
+		    syl.util.set_obj(key, ul);
 		} else {
-		    this.set_obj(key, nul);
+		    syl.util.set_obj(key, nul);
 		}
 	    }
 	},
 
-	update_grouplist : function(gl) {
+	update_grouplist : function(ngl) {
 	    // data construct:
 	    // {groupid1:{'i':val,'n':val},groupid2:{'i':val,'n':val}...}
-	    var key = 'gl';
-	    this.set_obj(key, gl);
+	    if (ngl) {
+		var key = 'gl';
+		var gl = syl.util.get_obj(key);
+		$.extend(gl, ngl)
+		syl.util.set_obj(key, gl);
+	    }
 	},
 
 	get_cookie : function(name) {
@@ -111,8 +118,17 @@ $(function() {
 	},
 
 	get_joined_group : function() {
-	    var userlist = get_obj('ul');
+	    var userlist = syl.util.get_obj('ul');
+	    var grouplist = syl.util.get_obj('gl');
+	    var user = syl.util.get_obj('u');
 	    var set = new Set();
+
+	    for ( var gid in grouplist) {
+		if (grouplist[gid]['m'] == user['i']) {
+		    set.add(gid);
+		}
+	    }
+
 	    for ( var uid in userlist) {
 		for ( var gid in userlist[uid]['gus']) {
 		    set.add(gid);
@@ -126,7 +142,7 @@ $(function() {
 	    if (str) {
 		return JSON.parse(str);
 	    }
-	    return null;
+	    return {};
 	},
 
 	set_obj : function(key, obj) {

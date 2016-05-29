@@ -5,6 +5,8 @@ import time
 
 import redis
 from Queue import Queue
+import simplejson
+import urllib
 
 
 pool = redis.ConnectionPool(host='192.168.0.108', port=6379, max_connections=10)
@@ -12,7 +14,7 @@ def get_redis():
     return redis.Redis(connection_pool=pool)
 
 CMD_CNF = set([
-    'CHAT' , 'CHECK_OL', 'DISPATCH_OL', 'RECV_LL'
+    'CHAT' , 'CHECK_OL', 'DISPATCH_OL', 'RECV_LL', 'APPLY_GROUP', 'APPROVE_USER'
 ]);
 
 
@@ -34,7 +36,7 @@ def web_socket_do_extra_handshake(request):
 
 def __add_uid_req(uid, request):
     ts = time.time()
-    user_request[uid] = {'req':request, 'ts':ts}
+    user_request[str(uid)] = {'req':request, 'ts':ts}
     request_user[request] = {'uid':uid, 'ts':ts}
     
 def web_socket_passive_closing_handshake(request):
@@ -59,8 +61,8 @@ def __get_uid(req):
         return request_user[req]['uid']
     
 def __get_req(uid):
-    if(user_request.has_key(uid)):
-        return user_request[uid]['req']
+    if(user_request.has_key(str(uid))):
+        return user_request[str(uid)]['req']
     
    
 def __get_ol(uid):
@@ -72,16 +74,15 @@ def __get_ol(uid):
         if(__get_req(id)):
             ols.append(id)  
     if(ols):
-        __send_msg(uid, cmd + ' ' + ' '.join(ols))
+        __send_msg(uid, {'cmd':cmd, 'uids':ols})
                    
 def __remove_notice(uid):
     cmd = 'RECV_LL'
     friendids = get_redis().get(uid + '_friendids')
     ids = friendids.split(',')
-    print(ids)
     for id in ids:
         if(__get_req(id)):
-            __send_msg(id, cmd + ' ' + uid)
+            __send_msg(id, {'cmd':cmd, 'uid':uid})
 
 def __add_notice(uid):
     cmd = 'DISPATCH_OL'
@@ -89,13 +90,13 @@ def __add_notice(uid):
     ids = friendids.split(',')
     for id in ids:
         if(__get_req(id)):
-            __send_msg(id, cmd + ' ' + uid)
+            __send_msg(id, {'cmd':cmd, 'uid':uid})
 
 def __send_msg(uid, msg):
     req = __get_req(uid)
     if(req):
         try:
-            req.ws_stream.send_message(msg, binary=False)
+            req.ws_stream.send_message(simplejson.dumps(msg), binary=False)
             return True
         except Exception as e:
             die_users.append({'uid':uid, 'ts':time.time()})
@@ -116,7 +117,7 @@ def web_socket_transfer_data(request):
         print(e)
     
 
-def clear_thread():
+def clear_die_user_thread():
     while True:
         if(die_users):
             die_dict = die_users.pop()
@@ -132,7 +133,7 @@ def clear_thread():
         else:
             time.sleep(5)
             
-def add_thread():
+def add_ol_user_thread():
      while True:
         if(add_users.qsize() > 0):
             add_dict = add_users.get_nowait()
@@ -147,24 +148,64 @@ def add_thread():
                 __get_ol(uid)            
         else:
             time.sleep(5)
+            
+def notice_thread():
+    while True:
+        notice = get_redis().rpop('notice')
+        if(notice):
+            try:
+                n_dict = simplejson.loads(notice)
+                if(n_dict['cmd'] in CMD_CNF):
+                    user_exists = user_request.has_key(str(n_dict['to']))
+                    if(user_exists):
+                        eval(n_dict['cmd'].lower())(n_dict)
+                    else:
+                        if(n_dict['t'] == 2 and time.time() < n_dict['ex']):
+                            get_redis().lpush('notice60' , notice)
+            except Exception as e:
+                print(e)
+        else:
+            time.sleep(5)
+            
+def notice60_thread():
+    notice60_key = 'notice60'
+    while True:
+        notice = get_redis().rpop(notice60_key)
+        other_key = 'notice60_bak' if notice60_key == 'notice60' else 'notice60'
+        if(notice):
+            try:
+                n_dict = simplejson.loads(notice)
+                if(n_dict['cmd'] in CMD_CNF):
+                    user_exists = user_request.has_key(str(n_dict['to']))
+                    if(user_exists):
+                        eval(n_dict['cmd'].lower())(n_dict)
+                    else:
+                        if(n_dict['t'] == 2 and time.time() < n_dict['ex']):
+                            get_redis().lpush(other_key, notice)
+            except Exception as e:
+                print(e)
+        else:
+            notice60_key = other_key
+            time.sleep(10)
         
-thread.start_new_thread (clear_thread, ())
-thread.start_new_thread (add_thread, ())
 
+thread.start_new_thread (clear_die_user_thread, ())
+thread.start_new_thread (add_ol_user_thread, ())
+thread.start_new_thread(notice_thread, ())
+thread.start_new_thread(notice60_thread, ())
 
 def ws_dispatch(line, request):
-    params = re.split('\s+', line.strip())
-    if(params):
-        if(params[0] in CMD_CNF):
-            eval(params[0].lower())(request, params[1:], params[0])
+    msg = simplejson.loads(line)
+    if(msg):
+        if(msg['cmd'] in CMD_CNF):
+            eval(msg['cmd'].lower())(request, msg)
         
 
-        
-def chat(request, params, cmd):
-    frm = params[0]
-    to = params[1]
-    content = params[2]
-    __send_msg(to, cmd + ' ' + frm + ' ' + content)
+def apply_group(n_dict):
+    __send_msg(str(n_dict['to']), n_dict)
+    
+def chat(request, msg):
+    __send_msg(msg['to'], {'cmd':msg['cmd'], 'uid':msg['from'], 'msg':msg['msg']})
         
     
         

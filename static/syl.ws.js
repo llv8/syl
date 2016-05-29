@@ -1,8 +1,9 @@
 $(function() {
     syl.ws = {
-	url : 'ws://192.168.0.104:8889/syl',
+	url : 'ws://192.168.0.103:8889/syl',
 	ws : null,
-	cmd : new Set([ 'CHAT', 'CHECK_OL', 'DISPATCH_OL', 'RECV_LL' ]),
+	cmd : new Set([ 'CHAT', 'CHECK_OL', 'DISPATCH_OL', 'RECV_LL',
+		'APPLY_GROUP' ]),
 	init : function() {
 	    if (!this.ws || this.ws.readyState != this.ws.OPEN) {
 		var user = syl.util.get_obj('u');
@@ -29,21 +30,21 @@ $(function() {
 		this.ws.onmessage = function(evt) {
 		    if (evt.data == null || evt.data == undefined)
 			return;
-		    var cmds = $.trim(evt.data).split(' ');
-		    if (!syl.ws.cmd.has(cmds[0]))
+		    var msg = JSON.parse(evt.data);
+		    if (!syl.ws.cmd.has(msg['cmd']))
 			return;
-		    var params = cmds.slice(1);
-		    syl.ws[cmds[0].toLowerCase() + '_resp'](params);
+		    syl.ws[msg['cmd'].toLowerCase() + '_resp'](msg);
 		};
 		this.ws.onerror = function(evt) {
 		    console.log(evt.data);
 		};
 	    }
 	},
-	chat_resp : function(params) {
-	    if ($.isEmptyObject(params))
+	chat_resp : function(msg) {
+	    if ($.isEmptyObject(msg))
 		return;
-	    syl.touser = syl.util.get_obj('ul')[params[0]];
+	    syl.touser = syl.util.get_obj('ul')[msg['uid']];
+	    syl.touser['i'] = msg['uid'];
 	    $('#chat_bar').html('@' + syl.touser.n);
 	    $('#chat_content')
 		    .append(
@@ -66,35 +67,53 @@ $(function() {
 			'padding' : '5px',
 			'border-radius' : '3px',
 			'clear' : 'both'
-		    }).html(decodeURIComponent(params[1])));
+		    }).html(decodeURIComponent(msg['msg'])));
 	    $('#chat_content')[0].scrollTop = $('#chat_content')[0].scrollTop + 100000000;
 	},
-	send : function(line) {
+	send : function(obj) {
 	    this.init();
-	    this.ws.send(line);
+	    this.ws.send(JSON.stringify(obj));
 	},
-	check_ol_resp : function(params) {
-	    if ($.isEmptyObject(params))
+	check_ol_resp : function(msg) {
+	    if ($.isEmptyObject(msg))
 		return;
 	    var userlist = syl.util.get_obj('ul');
-	    for (var i = 0; i < params.length; i++) {
-		userlist[params[i]]['ol'] = 1;
+	    for (var i = 0; i < msg['uids'].length; i++) {
+		userlist[msg['uids'][i]]['ol'] = 1;
 	    }
 	    syl.util.set_obj('ul', userlist);
 	},
-	dispatch_ol_resp : function(params) {
-	    if ($.isEmptyObject(params))
+	dispatch_ol_resp : function(msg) {
+	    if ($.isEmptyObject(msg))
 		return;
 	    var userlist = syl.util.get_obj('ul');
-	    userlist[params[0]]['ol'] = 1;
+	    userlist[msg['uid']]['ol'] = 1;
 	    syl.util.set_obj('ul', userlist);
 	},
-	recv_ll_resp : function(params) {
-	    if ($.isEmptyObject(params))
+	recv_ll_resp : function(msg) {
+	    if ($.isEmptyObject(msg))
 		return;
 	    var userlist = syl.util.get_obj('ul');
-	    userlist[params[0]]['ol'] = 0;
+	    userlist[msg['uid']]['ol'] = 0;
 	    syl.util.set_obj('ul', userlist);
+	},
+	apply_group_resp : function(msg) {
+	    var groupname = syl.util.get_obj('gl')[msg['gid']]['n'];
+	    var userid = msg['uid'];
+	    var username = msg['un'];
+	    var approveuserlist = syl.util.get_obj('aul');
+	    approveuserlist[userid] = {
+		'i' : userid,
+		'n' : username,
+		'gi' : msg['gid'],
+		'gn' : groupname
+	    }
+	    syl.util.set_obj('aul', approveuserlist)
+	    var notice = username + '申请加入' + groupname;
+	    $('#popup .worker').append($('<div class="notice">').css({
+		'margin' : '10px'
+	    }).html(notice));
+	    syl.key.open_popup();
 	}
     }
 });

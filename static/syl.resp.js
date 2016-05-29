@@ -31,6 +31,11 @@ $(function() {
 
 	approveuser : function(data) {
 	    syl.util.ajax_mask_resp(data);
+	    if (data.l == 1) {
+		var aul = syl.util.get_obj('aul');
+		delete aul[data.uid];
+		syl.util.set_obj('aul', aul);
+	    }
 	},
 
 	vcode : function(data) {

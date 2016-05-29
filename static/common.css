@@ -129,3 +129,18 @@ body {
 .highlight {
 	background-color: yellow
 }
+
+#popup {
+	z-index: 501;
+	width: 400px;
+	height: 300px;
+	position: absolute;
+	border: 1px solid rgb(227, 190, 35);
+	display: none;
+	border-top-right-radius: 10px;
+	border-top-left-radius: 10px;
+}
+
+#popup .worker {
+	background-color: #ffffff;
+}

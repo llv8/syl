@@ -85,12 +85,10 @@ def vcode(request):
             user = __get_u(id)
             user.pwd = hashlib.md5(str(id) + str(vcode)).hexdigest()
             user.status = 1
+            ut = time.time()
             user.utime = time.time()
-            user_dict = copy_user_dict(user)
-            user_dict['ts'] = time.time()
             set_s_uid(request, user.id)
-            resp_obj = {'u':user_dict}
-            resp_obj.update(__append_dict(id))
+            resp_obj = {'u':copy_user_dict(user)}
             __save_u(user)
             return resp(VCODE_SUCC, 1, resp_obj)
         else:
@@ -98,10 +96,9 @@ def vcode(request):
     else:
         return resp(SYS_ERR)
 
-
-        
 def __append_dict(userid, timestamp=0):
     timestamp = float(timestamp) if timestamp else 0
+    timestamp = 0
     gus = models.GroupUser.objects.filter(user=models.User(id=userid), status=1)
     # 获当前用户的所有组的增量改变好友
     groupusers = models.GroupUser.objects.filter(group__in=[gu.group for gu in gus], utime__gte=timestamp, status__in=[-1, 1]).exclude(user__id=userid)
@@ -199,17 +196,21 @@ def incr_vcode_times(userid):
     
     
 def refresh(request):
+    s_id = get_s_uid(request)
+    r_id = request.POST.get('i')
+    if(s_id and r_id and int(s_id) == int(r_id)):
+        user = models.User.objects.get(id=r_id)
+        user.utime = time.time()
+        resp_obj = {'u':copy_user_dict(user)}
+        resp_obj.update(__append_dict(user.id, request.POST.get('ts')))
+        __save_u(user)
+        return resp(None, 1, resp_obj)
+    return resp()
+
+def user_status(request):
     user = __user_stat(request)
     if(user):
-        user_dict = copy_user_dict(user)
-        resp_obj = {'u':user_dict} 
-        if(user.pwd and user.status == 1):
-            timestamp = request.POST.get('ts')
-            resp_obj.update(__append_dict(user_dict['i'], timestamp))
-            user_dict['ts'] = time.time()
-            set_s_uid(request, user.id)
-            __save_u(user)
-        return resp(None, 1, resp_obj)
+        return resp(None, 1, {'u':copy_user_dict(user)})
     else:
         return resp()
 

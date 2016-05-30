@@ -14,7 +14,7 @@ def get_redis():
     return redis.Redis(connection_pool=pool)
 
 CMD_CNF = set([
-    'CHAT' , 'CHECK_OL', 'DISPATCH_OL', 'RECV_LL', 'APPLY_GROUP', 'APPROVE_USER'
+    'CHAT' , 'CHECK_OL', 'DISPATCH_OL', 'RECV_LL', 'APPLY_GROUP', 'APPROVE_USER', 'REFRESH_OL'
 ]);
 
 
@@ -207,6 +207,9 @@ def apply_group(n_dict):
 def chat(request, msg):
     for to in msg['to']:
         __send_msg(to, {'cmd':msg['cmd'], 'uid':msg['from'], 'msg':msg['msg']})
+        
+def refresh_ol(request, msg):
+    __add_user(msg['uid'], request)
         
     
         

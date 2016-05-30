@@ -21,6 +21,7 @@ urlpatterns = [
     url(r'^logout', views.logout),
     url(r'^login', views.login),
     url(r'^refresh', views.refresh),
+    url(r'^userstatus', views.user_status),
     url(r'^addgroup', views.add_group),
     url(r'^applygroup', views.apply_group),
     url(r'^approveuser', views.approve_user),

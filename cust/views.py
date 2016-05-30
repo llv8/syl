@@ -198,7 +198,7 @@ def incr_vcode_times(userid):
     sylredis.get_redis().incrby(key, 1)
     
     
-def signin(request):
+def refresh(request):
     user = __user_stat(request)
     if(user):
         user_dict = copy_user_dict(user)
@@ -235,9 +235,12 @@ def __save_u(user):
     sylredis.set_user(copy_user_dict(user))
 
 def __get_u(uid):
-    user = models.User.objects.get(id=uid)
-    sylredis.set_user(copy_user_dict(user))
-    return user
+    try:
+        user = models.User.objects.get(id=int(uid))
+        sylredis.set_user(copy_user_dict(user))
+        return user
+    except Exception as e:
+        return None
 
 def add_group(request):
     params = get_cmd_params(request)
@@ -281,7 +284,9 @@ def apply_group(request):
 def approve_user(request):
     params = get_cmd_params(request)
     try:
-        group = models.Group(id=int(params[0]))
+        group = models.Group.objects.get(id=int(params[0]))
+        group.manager.utime = time.time()
+        group.save()
         user = models.User(id=int(params[1]))
         groupuser = models.GroupUser.objects.get(group=group, user=user)
     except Exception as e:

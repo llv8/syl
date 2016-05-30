@@ -30,6 +30,7 @@ $(function() {
 			    if (term.indexOf("@") === 0
 				    && term.split("@").length == 2) {
 				var userList = syl.util.get_obj('ul');
+				var groupList = syl.util.get_obj('gl');
 				var users = [];
 				$.each(userList, function(i, n) {
 				    var username = n.n;
@@ -38,6 +39,14 @@ $(function() {
 				    }
 				    users.push({
 					'label' : username,
+					'userid' : i
+				    });
+				});
+
+				$.each(groupList, function(i, n) {
+				    var groupname = n.n;
+				    users.push({
+					'label' : groupname,
 					'userid' : i
 				    });
 				});
@@ -74,8 +83,14 @@ $(function() {
 			},
 			select : function(event, ui) {
 			    $(this).html('@' + ui.item.label + ':');
-			    syl.touser = syl.util.get_obj('ul')[ui.item.userid];
-			    syl.touser['i'] = ui.item.userid;
+			    if (ui.item.userid > 100000) {
+				syl.touser = syl.util.get_obj('ul')[ui.item.userid];
+				syl.touser['i'] = ui.item.userid;
+			    } else {
+				syl.touser = syl.util.get_obj('gl')[ui.item.userid];
+				syl.touser['i'] = ui.item.userid;
+			    }
+
 			    if (event.keyCode === 13) {
 				var range = document.createRange();
 				var sel = window.getSelection();
@@ -88,12 +103,14 @@ $(function() {
 			    return false;
 			}
 		    }).autocomplete("instance")._renderItem = function(ul, item) {
-	var content = $('<a>')
-		.css(
-			{
-			    'color' : syl.util.get_obj('ul')[item.userid]['ol'] == 1 ? 'green'
-				    : 'red'
-			}).html(item.label);
+	var content = $('<a>').html(item.label);
+	if (parseInt(item.userid) > 100000) {
+	    var color = syl.util.get_obj('ul')[item.userid]['ol'] == 1 ? 'green'
+		    : 'red';
+	    $(content).css({
+		'color' : color
+	    });
+	}
 	return $("<li>").append(content).appendTo(ul);
     };
 });

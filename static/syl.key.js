@@ -549,6 +549,20 @@ $(function() {
 			return;
 		    var from = fromuser.i;
 		    var to = syl.touser.i;
+		    var tos = [];
+		    if (parseInt(to) <= 100000) {
+			var ul = syl.util.get_obj('ul');
+			for ( var key in ul) {
+			    var gus = ul[key]['gus'];
+			    if (gus) {
+				for ( var gui in gus) {
+				    if (gus[gui]['gi'] == parseInt(to)) {
+					tos.push(key);
+				    }
+				}
+			    }
+			}
+		    }
 		    $('#chat_bar').html('@' + syl.touser.n);
 		    var content = $('#chat_textarea').html();
 		    content = content.replace(/@[a-zA-Z0-9,]+:/, '');
@@ -556,7 +570,7 @@ $(function() {
 			var msg = {
 			    'cmd' : cmd,
 			    'from' : from,
-			    'to' : to,
+			    'to' : parseInt(to) > 100000 ? [ to ] : tos,
 			    'msg' : content
 			};
 			$('#chat_textarea').empty();

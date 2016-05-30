@@ -205,7 +205,8 @@ def apply_group(n_dict):
     __send_msg(str(n_dict['to']), n_dict)
     
 def chat(request, msg):
-    __send_msg(msg['to'], {'cmd':msg['cmd'], 'uid':msg['from'], 'msg':msg['msg']})
+    for to in msg['to']:
+        __send_msg(to, {'cmd':msg['cmd'], 'uid':msg['from'], 'msg':msg['msg']})
         
     
         

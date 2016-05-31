@@ -46,7 +46,7 @@ $(function() {
               th.update_stat(data.u);
               th.update_userlist(data.ul);
               th.update_grouplist(data.gl);
-              syl.ws.init();
+              syl.ws.test();
             }
           });
         });

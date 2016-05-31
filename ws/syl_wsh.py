@@ -14,14 +14,12 @@ def get_redis():
     return redis.Redis(connection_pool=pool)
 
 CMD_CNF = set([
-    'CHAT' , 'CHECK_OL', 'DISPATCH_OL', 'RECV_LL', 'APPLY_GROUP', 'APPROVE_USER', 'REFRESH_OL'
+    'CHAT' , 'CHECK_OL', 'APPLY_GROUP', 'APPROVE_USER', 'HEART_BEAT', 'ACK'
 ]);
 
 
 user_request = {}
 request_user = {}
-die_users = []
-add_users = Queue(1000)
 
 def web_socket_do_extra_handshake(request):
     if(re.match(r'^/syl\?i=[0-9]+&t=[a-z0-9]+$', request.uri)):
@@ -30,7 +28,7 @@ def web_socket_do_extra_handshake(request):
         uid = params[0].split('=')[1]
         token = params[1].split('=')[1]
         if(token == get_redis().hget(uid + '_user', 't')):
-            __add_user(uid, request)
+            __add_uid_req(uid, request)
             return
     request.ws_stream.close_connection(0, 'illegal connect')
 
@@ -42,12 +40,9 @@ def __add_uid_req(uid, request):
 def web_socket_passive_closing_handshake(request):
     uid = __get_uid(request)
     if(uid):
+        __remove_user(uid)
         print(uid + ' closed')
-        die_users.append({'uid':uid, 'ts':time.time()})
         
-    
-def __add_user(uid, request):
-    add_users.put({'uid':uid, 'req':request, 'ts':time.time()})
     
 def __remove_user(uid):
     req = __get_req(uid)
@@ -65,33 +60,6 @@ def __get_req(uid):
         return user_request[str(uid)]['req']
     
    
-def __get_ol(uid):
-    cmd = 'CHECK_OL'
-    friendids = get_redis().get(uid + '_friendids')
-    ids = friendids.split(',')
-    ols = []
-    for id in ids:
-        if(__get_req(id)):
-            ols.append(id)  
-    if(ols):
-        __send_msg(uid, {'cmd':cmd, 'uids':ols})
-                   
-def __remove_notice(uid):
-    cmd = 'RECV_LL'
-    friendids = get_redis().get(uid + '_friendids')
-    ids = friendids.split(',')
-    for id in ids:
-        if(__get_req(id)):
-            __send_msg(id, {'cmd':cmd, 'uid':uid})
-
-def __add_notice(uid):
-    cmd = 'DISPATCH_OL'
-    friendids = get_redis().get(uid + '_friendids')
-    ids = friendids.split(',')
-    for id in ids:
-        if(__get_req(id)):
-            __send_msg(id, {'cmd':cmd, 'uid':uid})
-
 def __send_msg(uid, msg):
     req = __get_req(uid)
     if(req):
@@ -99,7 +67,8 @@ def __send_msg(uid, msg):
             req.ws_stream.send_message(simplejson.dumps(msg), binary=False)
             return True
         except Exception as e:
-            die_users.append({'uid':uid, 'ts':time.time()})
+            __remove_user(uid)
+    return False
 
 
 def web_socket_transfer_data(request):
@@ -117,37 +86,6 @@ def web_socket_transfer_data(request):
         print(e)
     
 
-def clear_die_user_thread():
-    while True:
-        if(die_users):
-            die_dict = die_users.pop()
-            uid = die_dict['uid']
-            ts = float(die_dict['ts'])
-            if(user_request.has_key(uid)):
-                if(float(user_request[uid]['ts']) <= ts):
-                    __remove_notice(uid)
-                    __remove_user(uid)
-            else:
-                __remove_notice(uid)
-                __remove_user(uid)
-        else:
-            time.sleep(5)
-            
-def add_ol_user_thread():
-     while True:
-        if(add_users.qsize() > 0):
-            add_dict = add_users.get_nowait()
-            uid = add_dict['uid']
-            request = add_dict['req']
-            ts = add_dict['ts']
-            if(user_request.has_key(uid) and float(user_request[uid]['ts']) > float(ts)):
-                pass
-            else:
-                __add_uid_req(uid, request)
-                __add_notice(uid)
-                __get_ol(uid)            
-        else:
-            time.sleep(5)
             
 def notice_thread():
     while True:
@@ -188,11 +126,16 @@ def notice60_thread():
             notice60_key = other_key
             time.sleep(10)
         
-
-thread.start_new_thread (clear_die_user_thread, ())
-thread.start_new_thread (add_ol_user_thread, ())
+def heart_beat_thread():
+    while True:
+        for uid in user_request:
+            if(not __send_msg(uid, {'cmd':'HEART_BEAT'})):
+                __remove_user(uid)
+        else:time.sleep(10)
+            
 thread.start_new_thread(notice_thread, ())
 thread.start_new_thread(notice60_thread, ())
+thread.start_new_thread(heart_beat_thread, ())
 
 def ws_dispatch(line, request):
     msg = simplejson.loads(line)
@@ -203,13 +146,21 @@ def ws_dispatch(line, request):
 
 def apply_group(n_dict):
     __send_msg(str(n_dict['to']), n_dict)
+
+def approve_user(n_dict):
+    __send_msg(n_dict['to'], n_dict)
+    
+def check_ol(request, msg):
+    friendids = get_redis().get(str(msg['uid']) + '_friendids')
+    ids = friendids.split(',')
+    ols = []
+    for id in ids:
+        if(__get_req(id)):
+            ols.append(id)  
+    __send_msg(msg['uid'], {'cmd':msg['cmd'], 'uids':ols})
     
 def chat(request, msg):
     for to in msg['to']:
         __send_msg(to, {'cmd':msg['cmd'], 'uid':msg['from'], 'msg':msg['msg']})
         
-def refresh_ol(request, msg):
-    __add_user(msg['uid'], request)
-        
-    
         

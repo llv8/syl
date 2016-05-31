@@ -25,6 +25,7 @@ urlpatterns = [
     url(r'^addgroup', views.add_group),
     url(r'^applygroup', views.apply_group),
     url(r'^approveuser', views.approve_user),
+    url(r'^getgroupusers', views.get_group_users),
     url(r'^regws', views.regws),
     
 

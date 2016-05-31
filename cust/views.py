@@ -14,7 +14,7 @@ import simplejson as json
 from . import models
 from util.sylredis import get_redis
 
-NOTICE = ['APPLYGROUP', 'APPROVEUSER']
+NOTICE = ['APPLY_GROUP', 'APPROVE_USER']
 def register(request):
     logger = logging.getLogger(__name__)
     params = get_cmd_params(request)
@@ -285,17 +285,22 @@ def apply_group(request):
 def approve_user(request):
     params = get_cmd_params(request)
     try:
-        group = models.Group.objects.get(id=int(params[0]))
-        group.manager.utime = time.time()
-        group.save()
-        user = models.User(id=int(params[1]))
-        groupuser = models.GroupUser.objects.get(group=group, user=user)
+        groupuser = models.GroupUser.objects.get(group_id=int(params[0]), user_id=int(params[1]))
+        groupuser.status = 1
+        groupuser.save()
+        msg = {'cmd':'APPROVE_USER', 'to':params[1], 'gid':params[0], 't':2, 'ex':time.time() + 7 * 24 * 60 * 60}
     except Exception as e:
         return resp(GROUPUSER_NOT_EXISTS)
-    
-    groupuser.status = 1
-    groupuser.save()
-    return resp(APPROVE_SUCC, 1, {'uid':user.id})
+    return resp(APPROVE_SUCC, 1, {'uid':params[1]})
+
+def get_group_users(request):
+    gid = request.POST.get('gid')
+    uid = get_s_uid(request)
+    groupusers = models.GroupUser.objects.filter(group_id=gid, status=1).exclude(user_id=uid)
+    user_dicts = {}
+    for gu in groupusers:
+        populate_user_dicts(gu, user_dicts)
+    return resp(None, 1, {'ul':user_dicts})
 
 def regws(request):
     uid = str(get_s_uid(request))

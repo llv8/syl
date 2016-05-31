@@ -2,8 +2,16 @@ $(function() {
   syl.ws = {
     url: 'ws://192.168.0.108:8889/syl',
     ws: null,
-    cmd: new Set(['CHAT', 'CHECK_OL', 'DISPATCH_OL', 'RECV_LL', 'REFRESH_OL',
-        'APPLY_GROUP']),
+    testid: null,
+    checkolid: null,
+    cmd: new Set(['CHAT', 'CHECK_OL', 'HEART_BEAT', 'ACK', 'APPLY_GROUP',
+        'APPROVE_USER']),
+    test: function() {
+      syl.ws.init();
+      syl.ws.testid = setInterval(function() {
+        syl.ws.init();
+      }, 10 * 1000);
+    },
     init: function() {
       if (!this.ws || this.ws.readyState != this.ws.OPEN) {
         var user = syl.util.get_obj('u');
@@ -15,6 +23,8 @@ $(function() {
             't': user.t
           }, 'cust/regws', function(data) {
             if (data.l == 1) {
+              syl.ws.check_ol();
+              syl.ws.checkolid = setInterval("syl.ws.check_ol()", 10 * 1000);
               console.log('ws connected');
             } else {
               th.ws.close();
@@ -36,6 +46,11 @@ $(function() {
           console.log(evt.data);
         };
       }
+    },
+    close: function() {
+      if (syl.ws.checkolid) clearInterval(syl.ws.checkolid);
+      if (syl.ws.testid) clearInterval(syl.ws.testid);
+      syl.ws.ws.close();
     },
     chat_resp: function(msg) {
       if ($.isEmptyObject(msg)) return;
@@ -62,27 +77,26 @@ $(function() {
       $('#chat_content')[0].scrollTop = $('#chat_content')[0].scrollTop + 100000000;
     },
     send: function(obj) {
-      this.init();
       this.ws.send(JSON.stringify(obj));
+    },
+    check_ol: function() {
+      var cmd = 'CHECK_OL';
+      syl.ws.send({
+        'cmd': cmd,
+        'uid': syl.util.get_obj('u')['i']
+      });
     },
     check_ol_resp: function(msg) {
       if ($.isEmptyObject(msg)) return;
       var userlist = syl.util.get_obj('ul');
-      for (var i = 0; i < msg['uids'].length; i++) {
-        userlist[msg['uids'][i]]['ol'] = 1;
+      var oluids = new Set(msg['uids']);
+      for ( var key in userlist) {
+        if (oluids.has(key)) {
+          userlist[key]['ol'] = 1;
+        } else {
+          userlist[key]['ol'] = 0;
+        }
       }
-      syl.util.set_obj('ul', userlist);
-    },
-    dispatch_ol_resp: function(msg) {
-      if ($.isEmptyObject(msg)) return;
-      var userlist = syl.util.get_obj('ul');
-      userlist[msg['uid']]['ol'] = 1;
-      syl.util.set_obj('ul', userlist);
-    },
-    recv_ll_resp: function(msg) {
-      if ($.isEmptyObject(msg)) return;
-      var userlist = syl.util.get_obj('ul');
-      userlist[msg['uid']]['ol'] = 0;
       syl.util.set_obj('ul', userlist);
     },
     apply_group_resp: function(msg) {
@@ -103,12 +117,18 @@ $(function() {
       }).html(notice));
       syl.key.open_popup();
     },
-    refresh_ol: function() {
-      var msg = {
-        'cmd': 'REFRESH_OL',
-        'uid': syl.util.get_obj('u')['i']
-      };
-      syl.ws.send(msg);
+    approve_user_resp: function(msg) {
+      syl.util.ajax_send({
+        'gid': msg['gid']
+      }, 'cust/getgroupusers', function(data) {
+        if (data.l == 1) {
+          syl.util.update_userlist(data['ul'])
+        }
+      });
+    },
+    heart_beat_resp: function(msg) {
     }
+
   }
+
 });

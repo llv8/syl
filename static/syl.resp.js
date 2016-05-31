@@ -23,6 +23,7 @@ $(function() {
       syl.util.clear_storage();
       syl.util.update_stat(null);
       syl.util.mask_empty();
+      syl.ws.close();
     },
 
     addgroup: function(data) {

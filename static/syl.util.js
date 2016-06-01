@@ -20,6 +20,7 @@ $(function() {
               if (data.u.s == 1) {
                 syl.util.set_obj('u', data.u);
                 syl.util.interalrefresh();
+                syl.ws.heart_beat();
               }
               th.update_stat(data.u);
             } else if (data.l == 2) {
@@ -46,7 +47,6 @@ $(function() {
               th.update_stat(data.u);
               th.update_userlist(data.ul);
               th.update_grouplist(data.gl);
-              syl.ws.test();
             }
           });
         });

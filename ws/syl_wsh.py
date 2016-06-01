@@ -66,6 +66,7 @@ def __send_msg(uid, msg):
     req = __get_req(uid)
     if(req):
         try:
+            print(str(uid) + msg['cmd'])
             req.ws_stream.send_message(simplejson.dumps(msg), binary=False)
             return True
         except Exception as e:
@@ -163,19 +164,25 @@ def check_ol(request, msg):
 
 def get_chat_file(uid):
     t = time.strftime('%Y%m%d')
+    print('file' + str(uid))
     return open(CHAT_LOG + t + '-chat-' + str(uid), "a")
 
 def get_notice_file(uid):
     return open(CHAT_LOG + '-notice-' + str(uid), "a")
 
 def chat(request, msg):
-    t = time.time()
-    for to in msg['to']:
-        msg['t'] = t
-        msg['to'] = to
-        __send_msg(to, msg)
-        get_chat_file(to).write(simplejson.dumps(msg) + '\n')
-    f_msg = {'cmd':'CHAT_ACK', 't':t, 'from':msg['from'], 'to':msg['gid'] if msg['gid'] else msg['to'][0] }
+    t = int(time.time())
+    msg['t'] = t
+    if(isinstance(msg['to'], list)):
+        for to in msg['to']:
+            msg['to'] = to
+            __send_msg(to, msg)
+            get_chat_file(to).write(simplejson.dumps(msg) + '\n')
+    else:
+        __send_msg(msg['to'], msg)
+        get_chat_file(msg['to']).write(simplejson.dumps(msg) + '\n')
+        
+    f_msg = {'cmd':'CHAT_ACK', 't':t, 'from':msg['from'], 'to':msg['gid'] if msg['gid'] else msg['to'] }
     __send_msg(msg['from'], f_msg)
     f_msg['msg'] = msg['msg']
     get_chat_file(msg['from']).write(simplejson.dumps(f_msg) + '\n')

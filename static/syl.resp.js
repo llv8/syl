@@ -44,6 +44,7 @@ $(function() {
         if (data.l == 1) {
           syl.util.set_obj('u', data.u);
           syl.util.interalrefresh();
+          syl.ws.heart_beat();
         }
       });
     }

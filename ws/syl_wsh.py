@@ -1,14 +1,16 @@
+from Queue import Queue
 from __builtin__ import eval
 import re
 import thread
 import time
-
-import redis
-from Queue import Queue
-import simplejson
 import urllib
 
+import redis
+import simplejson
 
+
+CHAT_LOG = '/var/log/syl/chat/'
+NOTICE_LOG = '/var/log/syl/notice/'
 pool = redis.ConnectionPool(host='192.168.0.108', port=6379, max_connections=10)
 def get_redis():
     return redis.Redis(connection_pool=pool)
@@ -158,9 +160,23 @@ def check_ol(request, msg):
         if(__get_req(id)):
             ols.append(id)  
     __send_msg(msg['uid'], {'cmd':msg['cmd'], 'uids':ols})
-    
+
+def get_chat_file(uid):
+    t = time.strftime('%Y%m%d')
+    return open(CHAT_LOG + t + '-chat-' + str(uid), "a")
+
+def get_notice_file(uid):
+    return open(CHAT_LOG + '-notice-' + str(uid), "a")
+
 def chat(request, msg):
+    t = time.time()
     for to in msg['to']:
-        __send_msg(to, {'cmd':msg['cmd'], 'uid':msg['from'], 'msg':msg['msg']})
-        
-        
+        msg['t'] = t
+        msg['to'] = to
+        __send_msg(to, msg)
+        get_chat_file(to).write(simplejson.dumps(msg) + '\n')
+    f_msg = {'cmd':'CHAT_ACK', 't':t, 'from':msg['from'], 'to':msg['gid'] if msg['gid'] else msg['to'][0] }
+    __send_msg(msg['from'], f_msg)
+    f_msg['msg'] = msg['msg']
+    get_chat_file(msg['from']).write(simplejson.dumps(f_msg) + '\n')
+    

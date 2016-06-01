@@ -570,26 +570,10 @@ $(function() {
 			var msg = {
 			    'cmd' : cmd,
 			    'from' : from,
-			    'to' : parseInt(to) > 100000 ? [ to ] : tos,
+			    'to' : $.isEmptyObject(tos) ? to : tos,
+			    'gid' : $.isEmptyObject(tos) ? null : to,
 			    'msg' : content
 			};
-			$('#chat_textarea').empty();
-			var time = new Date().format('yyyy-MM-dd hh:mm:ss');
-			$('#chat_content').append($('<div>').css({
-			    'float' : 'right',
-			    'color' : '#008000',
-			    'clear' : 'both'
-			}).html('@' + syl.touser.n + '  ' + time)).append(
-				$('<div>').css({
-				    'float' : 'right',
-				    'color' : '#008000',
-				    'background-color' : '#ffffff',
-				    'border' : '1px solid',
-				    'padding' : '5px',
-				    'border-radius' : '3px',
-				    'clear' : 'both'
-				}).html(content));
-			$('#chat_content')[0].scrollTop = $('#chat_content')[0].scrollTop + 100000000;
 			syl.ws.send(msg);
 		    }
 		}

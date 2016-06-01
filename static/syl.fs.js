@@ -12,13 +12,14 @@ $(function() {
 	    window.requestFileSystem = window.requestFileSystem
 		    || window.webkitRequestFileSystem;
 	},
-	read : function() {
+	read : function(filename) {
+	    this.filename = filename;
 	    window.requestFileSystem(window.TEMPORARY,
 		    50 * 1024 * 1024 /* 50MB */, this.read_handler,
 		    this.error_handler);
 	    return this.__records;
 	},
-	write : function(records) {
+	write : function(filename, records) {
 	    this.__records = records;
 	    window.requestFileSystem(window.TEMPORARY,
 		    50 * 1024 * 1024 /* 50MB */, this.write_handler,
@@ -26,6 +27,7 @@ $(function() {
 	},
 
 	show_quota : function() {
+	    this.filename = filename;
 	    navigator.webkitTemporaryStorage.queryUsageAndQuota(function(
 		    usedBytes, grantedBytes) {
 		console.log('we are using ', usedBytes, ' of ', grantedBytes,
@@ -34,15 +36,8 @@ $(function() {
 		console.log('Error', e);
 	    });
 	},
-	get_filename : function() {
-	    var filename = 'chat' + '1234'; // (from>to?to+'-'+from:from+'-'+to)
-	    // +'-'+new
-	    // Date().format("yyyyMMdd");
-	    return filename;
-	},
-
 	read_handler : function(fs) {
-	    fs.root.getFile(syl.fs.get_filename(), {}, function(fileEntry) {
+	    fs.root.getFile(syl.fs.filename, {}, function(fileEntry) {
 
 		fileEntry.file(function(file) {
 		    var reader = new FileReader();
@@ -71,7 +66,7 @@ $(function() {
 	},
 
 	write_handler : function(fs) {
-	    fs.root.getFile(syl.fs.get_filename(), {
+	    fs.root.getFile(syl.fs.filename, {
 		create : true
 	    }, function(fileEntry) {
 		fileEntry.createWriter(function(fileWriter) {

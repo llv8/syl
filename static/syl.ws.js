@@ -158,7 +158,13 @@ $(function() {
         'gid': msg['gid']
       }, 'cust/getgroupusers', function(data) {
         if (data.l == 1) {
-          syl.util.update_userlist(data['ul'])
+          syl.util.update_userlist(data['ul']);
+          syl.util.showMsg(null, 1);
+          var notice = '您已加入' + syl.util.get_obj('gl')[msg['gid']]['n'];
+          $('#popup .worker').append($('<div class="notice">').css({
+            'margin': '10px'
+          }).html(notice));
+          syl.key.open_popup();
         }
       });
     },

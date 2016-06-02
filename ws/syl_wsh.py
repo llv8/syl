@@ -29,7 +29,7 @@ def web_socket_do_extra_handshake(request):
         params = param.split('&') 
         uid = params[0].split('=')[1]
         token = params[1].split('=')[1]
-        if(token == get_redis().hget(uid + '_user', 't')):
+        if(token == get_redis().hget('u_' + uid, 't')):
             __add_uid_req(uid, request)
             return
     request.ws_stream.close_connection(0, 'illegal connect')
@@ -154,7 +154,8 @@ def approve_user(n_dict):
     __send_msg(n_dict['to'], n_dict)
     
 def check_ol(request, msg):
-    friendids = get_redis().get(str(msg['uid']) + '_friendids')
+    friendids = get_redis().get('f_' + str(msg['uid']))
+    if(not friendids):return None
     ids = friendids.split(',')
     ols = []
     for id in ids:

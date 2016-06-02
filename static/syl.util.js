@@ -6,13 +6,13 @@ $(function() {
       setInterval("syl.util.refresh()", 60 * 1000);
     },
     userstatus: function() {
-      var user = this.get_obj('u');
+      var user = syl.util.get_obj('u');
       var th = this;
       if (user) {
         this.ajax_send({
           i: user.i,
           t: user.t,
-          ts: user.ts,
+          ts: syl.util.get_obj('ts'),
           s: user.s
         }, 'cust/userstatus', function(data) {
           th.ajax_main_resp(data, function(data) {
@@ -39,12 +39,11 @@ $(function() {
       if (user && user.s == 1) {
         this.ajax_send({
           i: user.i,
-          ts: user.ts
+          ts: syl.util.get_obj('ts')
         }, 'cust/refresh', function(data) {
           th.ajax_main_resp(data, function(data) {
             if (data.l == 1) {
-              th.set_obj('u', data.u);
-              th.update_stat(data.u);
+              th.set_obj('ts', data.ts);
               th.update_userlist(data.ul);
               th.update_grouplist(data.gl);
             }

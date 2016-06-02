@@ -51,6 +51,7 @@ def register(request):
             else:
                 return resp(MAIL_SENT, 1, {'u':copy_user_dict(users[0])})
         
+    # 一个手机只能用一次，邮箱也一样
     if(len(models.User.objects.filter(phone=phone)) > 0):
         return  resp(PHONE_USED)
     if(len(models.User.objects.filter(email=mail)) > 0):
@@ -61,7 +62,7 @@ def register(request):
     ids = 0
     if(len(maxids) > 0):
         ids = maxids[0].ids + 1
-    user = models.User(name=username, phone=phone, email=mail, ids=ids, utime=time.time())
+    user = models.User(name=username, phone=phone, email=mail, ids=ids)
     
     # send vcode
     vcode = get_vcode()
@@ -85,35 +86,56 @@ def vcode(request):
             user = __get_u(id)
             user.pwd = hashlib.md5(str(id) + str(vcode)).hexdigest()
             user.status = 1
-            ut = time.time()
-            user.utime = time.time()
-            set_s_uid(request, user.id)
-            resp_obj = {'u':copy_user_dict(user)}
             __save_u(user)
-            return resp(VCODE_SUCC, 1, resp_obj)
+            set_s_uid(request, user.id)
+            return resp(VCODE_SUCC, 1, {'u':copy_user_dict(user)})
         else:
             return resp(VCODE_ERR)
     else:
         return resp(SYS_ERR)
 
-def __append_dict(userid, timestamp=0):
-    timestamp = float(timestamp) if timestamp else 0
-    timestamp = 0
-    gus = models.GroupUser.objects.filter(user=models.User(id=userid), status=1)
-    # 获当前用户的所有组的增量改变好友
-    groupusers = models.GroupUser.objects.filter(group__in=[gu.group for gu in gus], utime__gte=timestamp, status__in=[-1, 1]).exclude(user__id=userid)
-    # 获当前用户的所有组的所有活跃好友
-    allgroupusers = models.GroupUser.objects.filter(group__in=[gu.group for gu in gus], status__in=[1]).exclude(user__id=userid)
-    alluserids = set([str(gu.user.id) for gu in  allgroupusers])
-    sylredis.set_str(str(userid) + '_friendids', ','.join(alluserids))
-    user_dicts = {}
-    for groupuser in groupusers:
-        populate_user_dicts(groupuser, user_dicts)
-    # TODO: groups = models.Group.objects.filter(status=1, utime__gte=timestamp)
-    groups = models.Group.objects.filter(status=1, utime__gte=timestamp)
-    group_dicts = {g.id:copy_group_dict(g) for g in groups}
-    return {'gl':group_dicts, 'ul':user_dicts}
+def refresh(request):
+    s_id = get_s_uid(request)
+    r_id = request.POST.get('i')
+    if(s_id and r_id and int(s_id) == int(r_id)):
+        __addfriends4redis(s_id)
+        resp_obj = {}
+        resp_obj['ul'] = __append_groupusers(s_id, request.POST.get('ts'))
+        resp_obj['gl'] = __append_groups(request.POST.get('ts'))
+        resp_obj['ts'] = time.time()
+        return resp(None, 1, resp_obj)
+    return resp()
+
+def __addfriends4redis(uid):
+    # 获取当前用户的自身组成员信息
+    gus = models.GroupUser.objects.filter(user=models.User(id=uid), status=1)
+    # 获当前用户的所有组的所有status为1的好友，并将这些用户的id存入redis中
+    # TODO:如果有性能问题，可以将所有组用户放入redis中，并起线程定期往内存定期刷入增量组成员。
+    if(gus and len(gus) > 0):
+        allgroupusers = models.GroupUser.objects.filter(group__in=[gu.group for gu in gus], status__in=[1]).exclude(user__id=uid)
+        alluserids = set([str(gu.user.id) for gu in  allgroupusers])
+        sylredis.set_str('f_' + str(uid), ','.join(alluserids))
     
+def __append_groupusers(uid, timestamp):
+    if not timestamp:timestamp = 0
+    # 获取当前用户的自身组成员信息
+    gus = models.GroupUser.objects.filter(user=models.User(id=uid), status=1)
+    user_dicts = {}
+    # 获当前用户的所有组的增量改变好友
+    if(gus and len(gus) > 0):
+        groupusers = models.GroupUser.objects.filter(group__in=[gu.group for gu in gus], utime__gte=timestamp, status__in=[-1, 1]).exclude(user__id=uid)
+        for groupuser in groupusers:
+            populate_user_dicts(groupuser, user_dicts)
+    return user_dicts
+
+def __append_groups(timestamp):
+    if not timestamp:timestamp = 0
+    group_dicts = {}
+    groups = models.Group.objects.filter(status=1, utime__gte=timestamp)
+    if(groups and len(groups) > 0):
+        group_dicts = {g.id:copy_group_dict(g) for g in groups}
+    return group_dicts
+
 def logout(request):
     uid = get_s_uid(request)
     if(uid):
@@ -166,6 +188,7 @@ def login(request):
     if(sylredis.get_vcode(user.id)):
         return resp('验证码已经发送至邮箱或手机，请查收', 1, {'u':copy_user_dict(user)})
     
+    # 校验当前用户当天的登录次数，如果超出，当天不允许再登录
     if(not valid_vcode_times(user.id)):
         return resp(VCODE_TIMES)
     
@@ -175,6 +198,7 @@ def login(request):
     if(isEmail):
         if(not send_mail.send_vcode(user.email, user.name, vcode)):
             return resp(SYS_ERR)
+        
     incr_vcode_times(user.id)
     sylredis.set_vcode(user.id, vcode)  
     msg = PHONE_SENT if isPhone else MAIL_SENT
@@ -195,24 +219,13 @@ def incr_vcode_times(userid):
     sylredis.get_redis().incrby(key, 1)
     
     
-def refresh(request):
-    s_id = get_s_uid(request)
-    r_id = request.POST.get('i')
-    if(s_id and r_id and int(s_id) == int(r_id)):
-        user = models.User.objects.get(id=r_id)
-        user.utime = time.time()
-        resp_obj = {'u':copy_user_dict(user)}
-        resp_obj.update(__append_dict(user.id, request.POST.get('ts')))
-        __save_u(user)
-        return resp(None, 1, resp_obj)
-    return resp()
-
 def user_status(request):
     user = __user_stat(request)
     if(user):
         return resp(None, 1, {'u':copy_user_dict(user)})
     else:
         return resp()
+
 
 def __user_stat(request):
     id = request.POST.get('i')
@@ -237,8 +250,8 @@ def __save_u(user):
 
 def __get_u(uid):
     try:
+        if(not uid):return None
         user = models.User.objects.get(id=int(uid))
-        sylredis.set_user(copy_user_dict(user))
         return user
     except Exception as e:
         return None
@@ -272,13 +285,13 @@ def apply_group(request):
     except Exception as e:
         return resp(GROUP_NOT_EXISTS)
     uid = get_s_uid(request)
-    uname = sylredis.get_redis().hget(str(uid) + '_user', 'n')
-    user = models.User(id=uid)
-    if(not models.GroupUser.objects.filter(group=group, user=user)):
+    uname = sylredis.get_redis().hget('u_' + str(uid), 'n')
+    if(not models.GroupUser.objects.filter(group=group, user__id=uid)):
         group_user = models.GroupUser(group=models.Group(id=params[0]), user=models.User(id=get_s_uid(request)), utime=time.time())
         group_user.save()
+    # 給组管理员发送notice
     # t: 1--实时类型，2--有过期时间的类型
-    msg = {'cmd':'APPLY_GROUP', 'uid':user.id, 'to':group.manager_id, 'un':uname, 'gid':group.id, 't':2, 'ex':time.time() + 7 * 24 * 60 * 60}
+    msg = {'cmd':'APPLY_GROUP', 'uid':uid, 'to':group.manager_id, 'un':uname, 'gid':group.id, 't':2, 'ex':time.time() + 7 * 24 * 60 * 60}
     sylredis.get_redis().lpush('notice', json.dumps(msg))
     return resp(GROUP_USER_SUCC, 1)
 
@@ -289,6 +302,7 @@ def approve_user(request):
         groupuser.status = 1
         groupuser.save()
         msg = {'cmd':'APPROVE_USER', 'to':params[1], 'gid':params[0], 't':2, 'ex':time.time() + 7 * 24 * 60 * 60}
+        sylredis.get_redis().lpush('notice', json.dumps(msg))
     except Exception as e:
         return resp(GROUPUSER_NOT_EXISTS)
     return resp(APPROVE_SUCC, 1, {'uid':params[1]})
@@ -306,7 +320,7 @@ def regws(request):
     uid = str(get_s_uid(request))
     token = request.POST['t']
     if(uid and token):
-        if(sylredis.get_redis().hget(uid + '_user', 't') == token):
+        if(sylredis.get_redis().hget('u_' + uid, 't') == token):
             return resp(None, 1)
     return resp(None, 2)
         

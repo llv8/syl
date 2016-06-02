@@ -2,8 +2,10 @@
 from django.http.response import HttpResponse
 import random
 import re
+import time
 
 import simplejson as json
+
 
 def get_cmd_params(request):
     cmd = get_param(request, 'cmd')
@@ -44,7 +46,7 @@ def populate_user_dicts(groupuser, user_dicts):
     user_dict = user_dicts[groupuser.user.id]
     if(not 'gus' in user_dict):  # gus:groupusers
         user_dict['gus'] = {}
-    user_dict['gus'][groupuser.group.id] = {'gi':groupuser.group.id, 'm':groupuser.group.manager.id, 's':groupuser.status}
+    user_dict['gus'][groupuser.group.id] = {'gi':groupuser.group.id, 's':groupuser.status}
             
 def copy_group_dict(group):
     return { 'n':group.name, 'm':group.manager.id}

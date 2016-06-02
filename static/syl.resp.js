@@ -6,6 +6,7 @@ $(function() {
     register: function(data) {
       syl.util.ajax_mask_resp(data, function(data) {
         if (data.l == 1) {
+          syl.util.clear_storage();
           syl.util.update_stat(data.u);
           syl.util.set_obj('u', data.u);
         }
@@ -14,6 +15,7 @@ $(function() {
     login: function(data) {
       syl.util.ajax_mask_resp(data, function(data) {
         if (data.l == 1) {
+          syl.util.clear_storage();
           syl.util.update_stat(data.u);
           syl.util.set_obj('u', data.u);
         }
@@ -43,6 +45,7 @@ $(function() {
       syl.util.ajax_mask_resp(data, function(data) {
         if (data.l == 1) {
           syl.util.set_obj('u', data.u);
+          syl.util.update_stat(data.u);
           syl.util.interalrefresh();
           syl.ws.heart_beat();
         }

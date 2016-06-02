@@ -31,6 +31,7 @@ def exi_str(key):
     return get_redis().exists(key)
 
 def set_user(user_dict):
-    get_redis().hmset(str(user_dict['i']) + '_user', user_dict);
+    get_redis().hmset('u_'+str(user_dict['i']), user_dict);
+    
     
 

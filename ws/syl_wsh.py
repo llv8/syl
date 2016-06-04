@@ -1,5 +1,8 @@
 from Queue import Queue
 from __builtin__ import eval
+from datetime import date, datetime
+import math
+import os
 import re
 import thread
 import time
@@ -16,7 +19,7 @@ def get_redis():
     return redis.Redis(connection_pool=pool)
 
 CMD_CNF = set([
-    'CHAT' , 'CHECK_OL', 'APPLY_GROUP', 'APPROVE_USER', 'HEART_BEAT', 'ACK'
+    'CHAT' , 'CHECK_OL', 'APPLY_GROUP', 'APPROVE_USER', 'HEART_BEAT', 'ACK', 'CHAT_LOG'
 ]);
 
 
@@ -165,11 +168,11 @@ def check_ol(request, msg):
 
 def get_chat_file(uid):
     t = time.strftime('%Y%m%d')
-    print('file' + str(uid))
-    return open(CHAT_LOG + t + '-chat-' + str(uid), "a")
+    return open(CHAT_LOG + t + '-chat-' + str(uid), 'a')
 
-def get_notice_file(uid):
-    return open(CHAT_LOG + '-notice-' + str(uid), "a")
+def get_notice_file(uid, t='r'):
+    return open(CHAT_LOG + '-notice-' + str(uid), 'a')
+
 
 def chat(request, msg):
     t = int(time.time())
@@ -188,3 +191,24 @@ def chat(request, msg):
     f_msg['msg'] = msg['msg']
     get_chat_file(msg['from']).write(simplejson.dumps(f_msg) + '\n')
     
+def chat_log(request, msg):
+    msgs = []
+    now = time.time()
+    DAY_TIME = 24 * 60 * 60
+    if(msg['last_record_date']):
+        last_time = time.mktime(datetime.datetime.strptime(msg['d'], '%Y%m%d').timetuple())
+    else:
+        last_time = now - DAY_TIME * 30
+        
+    days = int(math.ceil((now - last_time) / DAY_TIME))
+    for i in range(days):
+        last_str = time.strftime('%Y%m%d', time.localtime(last_time))
+        path = CHAT_LOG + last_str + '-chat-' + str(msg['uid'])
+        if(os.path.isfile(path)):
+            file = open(path, 'r') 
+            lines = file.readlines()
+            if(i == 0 and msg['line_num']):
+                lines = lines[msg['line_num']:]
+            msgs.extend(lines)
+    msg['msgs'] = msgs
+    __send_msg(msg['uid'], msg)

@@ -1,6 +1,6 @@
 from Queue import Queue
 from __builtin__ import eval
-from datetime import date, datetime
+import datetime
 import math
 import os
 import re
@@ -134,10 +134,14 @@ def notice60_thread():
         
 def heart_beat_thread():
     while True:
+        die_list = []
         for uid in user_request:
             if(not __send_msg(uid, {'cmd':'HEART_BEAT'})):
+                die_list.append(uid)
+        if(die_list):
+            for uid in die_list:
                 __remove_user(uid)
-        else:time.sleep(10)
+        time.sleep(10)
             
 thread.start_new_thread(notice_thread, ())
 thread.start_new_thread(notice60_thread, ())
@@ -192,23 +196,24 @@ def chat(request, msg):
     get_chat_file(msg['from']).write(simplejson.dumps(f_msg) + '\n')
     
 def chat_log(request, msg):
-    msgs = []
+    msgs = {}
     now = time.time()
     DAY_TIME = 24 * 60 * 60
-    if(msg['last_record_date']):
+    if(msg['d']):
+        # print(msg['d'])
         last_time = time.mktime(datetime.datetime.strptime(msg['d'], '%Y%m%d').timetuple())
     else:
         last_time = now - DAY_TIME * 30
-        
+    
     days = int(math.ceil((now - last_time) / DAY_TIME))
     for i in range(days):
-        last_str = time.strftime('%Y%m%d', time.localtime(last_time))
+        last_str = time.strftime('%Y%m%d', time.localtime(last_time + i * DAY_TIME))
         path = CHAT_LOG + last_str + '-chat-' + str(msg['uid'])
         if(os.path.isfile(path)):
             file = open(path, 'r') 
             lines = file.readlines()
-            if(i == 0 and msg['line_num']):
-                lines = lines[msg['line_num']:]
-            msgs.extend(lines)
+            if(i == 0 and msg['ln']):
+                lines = lines[msg['ln']:]
+            msgs[last_str] = lines
     msg['msgs'] = msgs
     __send_msg(msg['uid'], msg)

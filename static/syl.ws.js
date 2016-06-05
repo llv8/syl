@@ -61,29 +61,44 @@ $(function() {
               + syl.util.get_id();
     },
     chat_log_resp: function(msg) {
+      var all_len = 0;
       if (msg['msgs']) {
         var keys = [];
         for ( var key in msg['msgs']) {
           keys.push(key);
         }
         keys = keys.sort();
+
         for (var i = 0; i < keys.length; i++) {
           // var record = JSON.parse(msg['msgs'][i]);
           var records = [];
           for (var j = 0; j < msg['msgs'][keys[i]].length; j++) {
             records.push(JSON.parse(msg['msgs'][keys[i]][j]));
           }
-          syl.fs.write(keys[i] + '-chat-' + syl.util.get_id(), records);
+          all_len += records.length;
+          if (!$.isEmptyObject(records))
+            syl.fs.write(keys[i] + '-chat-' + syl.util.get_id(), records,
+                    syl.ws.show_records);
         }
       }
+      if (all_len == 0) {
+        syl.ws.show_records();
+      }
+    },
+    show_records: function() {
       $('#chat_content').empty();
       var id = syl.util.get_id();
-      var filename = syl.util.get_obj('lastr-' + id) + '-chat-' + id;
-      /*
-       * syl.fs.read(filename, function(records) { for ( var record in records) {
-       * if (record['from'] == syl.util.get_id()) { syl.ws.render_from(record); }
-       * else { syl.ws.render_to(record); } } });
-       */
+      var filename = syl.util.get_b('lastr-' + id) + '-chat-' + id;
+
+      syl.fs.read(filename, function(records) {
+        for ( var i in records) {
+          if (records[i]['from'] == syl.util.get_id()) {
+            syl.ws.render_from(records[i]);
+          } else {
+            syl.ws.render_to(records[i]);
+          }
+        }
+      });
     },
     chat_resp: function(msg) {
       syl.ws.render_to(msg);
@@ -103,9 +118,15 @@ $(function() {
     render_from: function(msg) {
       $('#chat_textarea').empty();
       var time = syl.util.get_date(msg['t'], 'MM-dd hh:mm:ss');
+      var toname = null;
+      if (msg['to'] > 100000) {
+        toname = syl.util.get_obj('ul')[msg['to']]['n'];
+      } else {
+        toname = syl.util.get_obj('gl')[msg['to']]['n'];
+      }
       $('#chat_content').append(
-              $('<div class="from">').html('@' + syl.touser.n + '  ' + time))
-              .append($('<div class="from msg">').html(msg['msg']));
+              $('<div class="from">').html('@' + toname + '  ' + time)).append(
+              $('<div class="from msg">').html(decodeURIComponent(msg['msg'])));
       $('#chat_content')[0].scrollTop = $('#chat_content')[0].scrollTop + 100000000;
     },
     render_to: function(msg) {

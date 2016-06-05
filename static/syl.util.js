@@ -2,7 +2,6 @@ syl = {}
 $(function() {
   syl.util = {
     interalrefresh: function() {
-      syl.util.refresh();
       setInterval("syl.util.refresh()", 60 * 1000);
     },
     userstatus: function() {
@@ -12,15 +11,16 @@ $(function() {
         this.ajax_send({
           i: user.i,
           t: user.t,
-          ts: syl.util.get_obj('ts'),
+          ts: syl.util.get_b('ts'),
           s: user.s
         }, 'cust/userstatus', function(data) {
           th.ajax_main_resp(data, function(data) {
             if (data.l == 1) {
               if (data.u.s == 1) {
                 syl.util.set_obj('u', data.u);
-                syl.util.interalrefresh();
+                syl.util.refresh(false);
                 syl.ws.heart_beat();
+                syl.util.interalrefresh();
               }
               th.update_stat(data.u);
             } else if (data.l == 2) {
@@ -33,35 +33,37 @@ $(function() {
         this.update_stat(null);
       }
     },
-    refresh: function() {
+    refresh: function(async) {
       var user = this.get_obj('u');
       var th = this;
       if (user && user.s == 1) {
         this.ajax_send({
           i: user.i,
-          ts: syl.util.get_obj('ts')
+          ts: syl.util.get_b('ts')
         }, 'cust/refresh', function(data) {
           th.ajax_main_resp(data, function(data) {
             if (data.l == 1) {
-              th.set_obj('ts', data.ts);
+              th.set_b('ts', data.ts);
               th.update_userlist(data.ul);
               th.update_grouplist(data.gl);
             }
           });
-        });
+        }, async);
       }
     },
-    ajax_send: function(params, url, fn) {
+    ajax_send: function(params, url, fn, async) {
       var th = this;
       var user = syl.util.get_obj('u');
       if (user) params = $.extend(params, {
         i: user.i
       });
+      async = async != null ? async : true;
       $.ajax({
         type: 'POST',
         data: params,
         dataType: 'json',
         url: url,
+        async: async,
         headers: {
           'X-CSRFToken': th.get_cookie('csrftoken')
         },
@@ -163,6 +165,14 @@ $(function() {
       return {};
     },
 
+    get_b: function(key) {
+      var str = localStorage.getItem(key);
+      if (str) { return str; }
+      return null;
+    },
+    set_b: function(key, value) {
+      localStorage.setItem(key, value);
+    },
     get_id: function() {
       return syl.util.get_obj('u')['i'];
     },

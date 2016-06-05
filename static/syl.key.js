@@ -310,19 +310,19 @@ $(function() {
     },
 
     move_d: function() {
-      key_handler.__move(2, 1);
+      syl.key.__move(2, 1);
     },
 
     move_u: function() {
-      key_handler.__move(2, 2);
+      syl.key.__move(2, 2);
     },
 
     move_l: function() {
-      key_handler.__move(1, 1);
+      syl.key.__move(1, 1);
     },
 
     move_r: function() {
-      key_handler.__move(1, 2);
+      syl.key.__move(1, 2);
     },
 
     find: function() {

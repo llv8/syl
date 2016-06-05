@@ -37,7 +37,7 @@ $(function() {
       window.requestFileSystem(window.TEMPORARY, 50 * 1024 * 1024 /* 50MB */,
               read_handler, this.error_handler);
     },
-    write: function(filename, records) {
+    write: function(filename, records, write_resp) {
       this.filename = filename;
       var write_handler = function(fs) {
         fs.root.getFile(filename, {
@@ -46,6 +46,9 @@ $(function() {
           fileEntry.createWriter(function(fileWriter) {
             fileWriter.onwriteend = function(e) {
               console.log('Write completed.');
+              if (write_resp) {
+                write_resp();
+              }
             };
             fileWriter.onerror = function(e) {
               console.log('Write failed: ' + e.toString());
@@ -130,23 +133,24 @@ $(function() {
     },
 
     add_line_num: function(record) {
-      if (record['cmd'] && record['cmd'] == 'CHAT') {
+      if (record['cmd']
+              && (record['cmd'] == 'CHAT' || record['cmd'] == 'CHAT_ACK')) {
         var id = syl.util.get_id();
         var date = syl.util.get_date(record['t'], 'yyyyMMdd');
         var key = date + '-' + id;
-        var line_num = syl.util.get_obj(key);
+        var line_num = syl.util.get_b(key);
         if (line_num) {
-          syl.util.set_obj(key, parseInt(line_num) + 1);
+          syl.util.set_b(key, parseInt(line_num) + 1);
         } else {
-          syl.util.set_obj(key, 1);
+          syl.util.set_b(key, 1);
         }
-        syl.util.set_obj('lastr-' + id, date);
+        syl.util.set_b('lastr-' + id, date);
       }
     },
 
     load_records: function() {
       var id = syl.util.get_id();
-      var last_record_date = syl.util.get_obj('lastr-' + id);
+      var last_record_date = syl.util.get_b('lastr-' + id);
       var line_num = null;
       if (last_record_date) {
         var key = last_record_date + '-' + id;

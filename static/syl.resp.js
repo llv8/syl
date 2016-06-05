@@ -46,8 +46,9 @@ $(function() {
         if (data.l == 1) {
           syl.util.set_obj('u', data.u);
           syl.util.update_stat(data.u);
-          syl.util.interalrefresh();
+          syl.util.refresh(false);
           syl.ws.heart_beat();
+          syl.util.interalrefresh();
         }
       });
     }

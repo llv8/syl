@@ -201,7 +201,9 @@ $(function() {
       });
       $(syl.wnd.activeele).scroll();
     },
-
+    __pos: function(index, css, val) {
+      $(syl.wnd.list[index]).css(css, '\-webkit\-calc(' + val + '% - 4px)');
+    },
     __move: function(direct, type) {
       var index = 0
       for (var i = 0; i < syl.wnd.list.length; i++) {
@@ -232,31 +234,16 @@ $(function() {
           // do nothing
         } else {
           if (type == 1) {
-            $(syl.wnd.list[0]).css('height',
-                    '\-webkit\-calc(' + Math.ceil(percenttop) + '% - 4px)');
-            $(syl.wnd.list[1]).css('height',
-                    '\-webkit\-calc(' + Math.ceil(percenttop) + '% - 4px)');
-            $(syl.wnd.list[2]).css(
-                    'height',
-                    '\-webkit\-calc(' + (100 - Math.ceil(percenttop))
-                            + '% - 4px)');
-            $(syl.wnd.list[3]).css(
-                    'height',
-                    '\-webkit\-calc(' + (100 - Math.ceil(percenttop))
-                            + '% - 4px)');
+            syl.key.__pos(0, 'height', Math.ceil(percenttop));
+            syl.key.__pos(1, 'height', Math.ceil(percenttop));
+            syl.key.__pos(2, 'height', 100 - Math.ceil(percenttop));
+            syl.key.__pos(3, 'height', 100 - Math.ceil(percenttop));
+
           } else {
-            $(syl.wnd.list[0]).css('height',
-                    '\-webkit\-calc(' + Math.floor(percenttop) + '% - 4px)');
-            $(syl.wnd.list[1]).css('height',
-                    '\-webkit\-calc(' + Math.floor(percenttop) + '% - 4px)');
-            $(syl.wnd.list[2]).css(
-                    'height',
-                    '\-webkit\-calc(' + (100 - Math.floor(percenttop))
-                            + '% - 4px)');
-            $(syl.wnd.list[3]).css(
-                    'height',
-                    '\-webkit\-calc(' + (100 - Math.floor(percenttop))
-                            + '% - 4px)');
+            syl.key.__pos(0, 'height', Math.floor(percenttop));
+            syl.key.__pos(1, 'height', Math.floor(percenttop));
+            syl.key.__pos(2, 'height', 100 - Math.floor(percenttop));
+            syl.key.__pos(3, 'height', 100 - Math.floor(percenttop));
           }
         }
 
@@ -277,33 +264,16 @@ $(function() {
           // do nothing
         } else {
           if (type == 2) {
-            $(syl.wnd.list[0]).css('width',
-                    '\-webkit\-calc(' + Math.ceil(percentleft) + '% - 4px)');
-            $(syl.wnd.list[2]).css('width',
-                    '\-webkit\-calc(' + Math.ceil(percentleft) + '% - 4px)');
-            $(syl.wnd.list[1]).css(
-                    'width',
-                    '\-webkit\-calc(' + (100 - Math.ceil(percentleft))
-                            + '% - 4px)');
-            $(syl.wnd.list[3]).css(
-                    'width',
-                    '\-webkit\-calc(' + (100 - Math.ceil(percentleft))
-                            + '% - 4px)');
+            syl.key.__pos(0, 'width', Math.ceil(percentleft));
+            syl.key.__pos(1, 'width', 100 - Math.ceil(percentleft));
+            syl.key.__pos(2, 'width', Math.ceil(percentleft));
+            syl.key.__pos(3, 'width', 100 - Math.ceil(percentleft));
           } else {
-            $(syl.wnd.list[0]).css('width',
-                    '\-webkit\-calc(' + Math.floor(percentleft) + '% - 4px)');
-            $(syl.wnd.list[2]).css('width',
-                    '\-webkit\-calc(' + Math.floor(percentleft) + '% - 4px)');
-            $(syl.wnd.list[1]).css(
-                    'width',
-                    '\-webkit\-calc(' + (100 - Math.floor(percentleft))
-                            + '% - 4px)');
-            $(syl.wnd.list[3]).css(
-                    'width',
-                    '\-webkit\-calc(' + (100 - Math.floor(percentleft))
-                            + '% - 4px)');
+            syl.key.__pos(0, 'width', Math.floor(percentleft));
+            syl.key.__pos(1, 'width', 100 - Math.floor(percentleft));
+            syl.key.__pos(2, 'width', Math.floor(percentleft));
+            syl.key.__pos(3, 'width', 100 - Math.floor(percentleft));
           }
-
         }
       }
 
@@ -531,7 +501,9 @@ $(function() {
     close_popup: function() {
       $('#popup').css('display', 'none');
     },
-
+    __pre_pos: function(index, attr, val) {
+      $(syl.wnd.list[index]).attr(attr, '\-webkit\-calc(' + val + '% - 4px)');
+    },
     max_or_min_wnd: function() {
       if (syl.wnd.activewnd.css('position') == 'relative') {
         syl.wnd.activewnd.css('position', '');
@@ -557,31 +529,14 @@ $(function() {
         var all_height = document.documentElement.clientHeight;
         var percent_height = parseInt(height.replace(/px/, ''))
                 / (all_height - 20 - 8) * 100;
-
-        $(syl.wnd.list[0]).attr('pre-height',
-                '\-webkit\-calc(' + Math.ceil(percent_height) + '% - 4px)');
-        $(syl.wnd.list[0]).attr('pre-width',
-                '\-webkit\-calc(' + Math.ceil(percent_width) + '% - 4px)');
-        $(syl.wnd.list[1]).attr('pre-height',
-                '\-webkit\-calc(' + Math.ceil(percent_height) + '% - 4px)');
-        $(syl.wnd.list[1]).attr(
-                'pre-width',
-                '\-webkit\-calc(' + (100 - Math.ceil(percent_width))
-                        + '% - 4px)');
-        $(syl.wnd.list[2]).attr(
-                'pre-height',
-                '\-webkit\-calc(' + (100 - Math.ceil(percent_height))
-                        + '% - 4px)');
-        $(syl.wnd.list[2]).attr('pre-width',
-                '\-webkit\-calc(' + Math.ceil(percent_width) + '% - 4px)');
-        $(syl.wnd.list[3]).attr(
-                'pre-height',
-                '\-webkit\-calc(' + (100 - Math.ceil(percent_height))
-                        + '% - 4px)');
-        $(syl.wnd.list[3]).attr(
-                'pre-width',
-                '\-webkit\-calc(' + (100 - Math.ceil(percent_width))
-                        + '% - 4px)');
+        syl.key.__pre_pos(0, 'pre-height', Math.ceil(percent_height));
+        syl.key.__pre_pos(0, 'pre-width', Math.ceil(percent_width));
+        syl.key.__pre_pos(1, 'pre-height', Math.ceil(percent_height));
+        syl.key.__pre_pos(1, 'pre-width', 100 - Math.ceil(percent_width));
+        syl.key.__pre_pos(2, 'pre-height', 100 - Math.ceil(percent_height));
+        syl.key.__pre_pos(2, 'pre-width', Math.ceil(percent_width));
+        syl.key.__pre_pos(3, 'pre-height', 100 - Math.ceil(percent_height));
+        syl.key.__pre_pos(3, 'pre-width', 100 - Math.ceil(percent_width));
 
         $(syl.wnd.list).css('display', 'none');
 

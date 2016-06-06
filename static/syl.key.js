@@ -400,32 +400,57 @@ $(function() {
       syl.wnd.activeele.scrollTop(syl.wnd.activeele[0].scrollHeight);
     },
 
+    __get_tip: function(i) {
+      var CHAR = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
+          'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
+      var first = CHAR[Math.floor(i / 26)];
+      var second = CHAR[i % 26];
+      return first + second;
+    },
+
     active_el: function() {
       $('#fkey').empty();
 
       var interativeEle = $('a,input,div[tabIndex]');
       for (var i = 0; i < interativeEle.length; i++) {
-        if ($(interativeEle[i]).parents('.wnd').css('display') == 'none') {
+        if ($(interativeEle[i]).parents('.wnd').css('display') == 'none'
+                || $(interativeEle[i]).parents('.absolute_wnd').css('display') == 'none') {
           continue;
         }
-        if (interativeEle[i].tagName.toUpperCase() == 'DIV'
-                && $(interativeEle[i]).attr('class') == 'wnd'
+        if ($(interativeEle[i]).attr('class') == 'wnd'
+                || $(interativeEle[i]).attr('class') == 'absolute_wnd'
                 || ($(interativeEle[i]).attr('class') && $(interativeEle[i])
                         .attr('class').indexOf('ui-menu-item') >= 0)) {
           continue;
         }
+        var tip_content = syl.key.__get_tip(i);
+        var tip = $('<div>').attr('class', 'fkey').html(tip_content);
+        $('#fkey').append(tip).css('display', 'block');
+        var position = null;
+        var top = null;
+        var left = null;
+        position = $(interativeEle[i]).position();
+        top = position.top - tip.css('height').replace(/px/, '');
+        left = position.left;// - tip.css('width').replace(/px/, '');
 
-        var tip = $('<div>').attr('class', 'fkey').html(i);
-        var position = $(interativeEle[i]).position();
-        var top = position.top - tip.css('height').replace(/px/, '');
-        var left = position.left - tip.css('width').replace(/px/, '');
+        var parent = $(interativeEle[i]).parents('.absolute_wnd');
+        if (parent.length > 0) {
+          var parent_pos = $(parent).position();
+          top = parent_pos.top + top;
+          left = parent_pos.left + left;
+        }
+
         tip.css('top', top);
         tip.css('left', left);
-        tip.css('z-index', $(interativeEle[i]).parents('.wnd').css('z-index'));
-        $('#fkey').append(tip).css('display', 'block');
-
-        (function(ind) {
-          Mousetrap.bind((ind + '').split('').join(' '), function(event) {
+        if ($(interativeEle[i]).parents('.wnd').length > 0)
+          tip
+                  .css('z-index', $(interativeEle[i]).parents('.wnd').css(
+                          'z-index'));
+        else if ($(interativeEle[i]).parents('.absolute_wnd').length > 0)
+          tip.css('z-index', $(interativeEle[i]).parents('.absolute_wnd').css(
+                  'z-index') + 1);
+        (function(ind, tip_content) {
+          Mousetrap.bind(tip_content.split('').join(' '), function(event) {
             if (interativeEle[ind].tagName.toUpperCase() == 'A') {
               var url = $(interativeEle[ind]).attr('href');
               window.open(url);
@@ -439,7 +464,7 @@ $(function() {
 
             $('#fkey').css('display', 'none').empty();
           });
-        })(i);
+        })(i, tip_content);
       }
     },
     chat_send: function(event) {

@@ -40,6 +40,11 @@ body {
 	background: #dddddd;
 	overflow: auto;
 	padding: 5px;
+	margin: 0 auto;
+}
+
+#tech_content {
+	padding: 15px 10px;
 }
 
 #footer {
@@ -134,11 +139,30 @@ body {
 	z-index: 501;
 	width: 400px;
 	height: 300px;
-	position: absolute;
 	border: 1px solid rgb(227, 190, 35);
 	display: none;
 	border-top-right-radius: 10px;
 	border-top-left-radius: 10px;
+}
+
+.absolute_wnd {
+	position: absolute;
+}
+
+.active_border {
+	border-color: #ffa500;
+}
+
+.inactive_border {
+	border-color: #a1a1a1;
+}
+
+.active_title {
+	opacity: 1;
+}
+
+.inactive_title {
+	opacity: 0.2;
 }
 
 #popup .worker {
@@ -146,7 +170,7 @@ body {
 }
 
 #chat_content .msg {
-	background-color: #ffffff;
+	background-color: rgba(110, 210, 230, 0.21);
 	border: 1px solid;
 	padding: 5px;
 	border-radius: 3px;

@@ -1,19 +1,17 @@
 $(function() {
-  $.extend(syl, {
-    touser: null,
-    wnd: {
-      list: null,
-      activewnd: null,
-      index: 0,
-      activeele: null,
-      activeselected: 0
-    },
-    init: function() {
-      this.key.init();
-      this.fs.init();
-      this.util.userstatus();
-    },
-  });
-  syl.init();
+    $.extend(syl, {
+	touser : null,
+	wnd : {
+	    index : 0,
+	},
+	init : function() {
+	    this.key.init();
+	    this.fs.init();
+	    $("#tech_tabs").tabs();
+	    $("#tools_tabs").tabs();
+	    this.util.userstatus();
+	},
+    });
+    syl.init();
 
 });

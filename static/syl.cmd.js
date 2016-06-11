@@ -49,7 +49,7 @@ $(function() {
 
 	];
 	$('#mask').empty();
-	var input = $('<input id="cmd">');
+	var input = $('<input id="cmd" class="dp">');
 	$('#mask').append(input).removeClass('ndp').addClass('dp');
 	input[0].focus();
 

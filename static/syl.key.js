@@ -111,20 +111,21 @@ $(function() {
 		'help' : 'help'
 	    } ]
 	},
+	__all_el : function() {
+	    return $('a,input,textarea,[tabIndex]');
+	},
 	__focus_handler : function() {
-	    $('a,input,[tabIndex]').focus(
-		    function() {
-			$('a,input,[tabIndex]').removeClass('a_b').addClass(
-				'i_b');
-			$('.title').removeClass('a_t').addClass('i_t');
+	    var all_el = $('input,textarea,[tabIndex]');
+	    all_el.focus(function() {
+		all_el.removeClass('a_b').addClass('i_b');
+		$('.title').removeClass('a_t').addClass('i_t');
 
-			$(this).removeClass('i_b').addClass('a_b');
-			$(this).parents('.wnd').children('.title').removeClass(
-				'i_t').addClass('a_t');
-			$(this).children('.title').removeClass('i_t').addClass(
-				'a_t');
-		    });
-	    $('a,input,[tabIndex]').blur(function() {
+		$(this).removeClass('i_b').addClass('a_b');
+		$(this).parents('.wnd').children('.title').removeClass('i_t')
+			.addClass('a_t');
+		$(this).children('.title').removeClass('i_t').addClass('a_t');
+	    });
+	    all_el.blur(function() {
 		if (document.activeElement.tagName == 'BODY') {
 		    syl.pre_focus = this;
 		}
@@ -141,7 +142,6 @@ $(function() {
 	    } else if ($('#fkey').hasClass('dp')) {
 		$('#fkey').removeClass('dp').addClass('ndp').empty();
 	    }
-
 	    var cur_el = null;
 	    if (document.activeElement.tagName == 'BODY') {
 		cur_el = syl.blur_obj;
@@ -441,7 +441,7 @@ $(function() {
 
 	active_el : function() {
 	    $('#fkey').empty();
-	    var els = $('a,input,[tabIndex]');
+	    var els = syl.key.__all_el();
 	    for (var i = 0; i < els.length; i++) {
 		if ($(els[i]).css('display') == 'none'
 			|| $(els[i]).hasClass('wnd')) {
@@ -488,25 +488,30 @@ $(function() {
 		$('#fkey').append(tip).removeClass('ndp').addClass('dp');
 
 		(function(ind, tip_content) {
-		    Mousetrap.bind(tip_content.split('').join(' '), function(
-			    event) {
-			if (els[ind].tagName.toUpperCase() == 'A') {
-			    var url = $(els[ind]).attr('href');
-			    if (!url || url.indexOf('#') == 0) {
-				$(els[ind]).click();
-			    } else {
-				window.open(url);
-			    }
-			} else if (els[ind].tagName.toUpperCase() == 'INPUT') {
-			    $(els[ind]).focus();
-			    event.preventDefault();
-			} else if (els[ind].tagName.toUpperCase() == 'DIV') {
-			    $(els[ind]).focus();
-			    event.preventDefault();
-			}
+		    Mousetrap
+			    .bind(
+				    tip_content.split('').join(' '),
+				    function(event) {
+					if (els[ind].tagName.toUpperCase() == 'A') {
+					    var url = $(els[ind]).attr('href');
+					    if (!url || url.indexOf('#') == 0) {
+						$(els[ind]).click();
+					    } else {
+						window.open(url);
+					    }
+					} else if (els[ind].tagName
+						.toUpperCase() == 'INPUT'
+						|| els[ind].tagName
+							.toUpperCase() == 'DIV'
+						|| els[ind].tagName
+							.toUpperCase() == 'TEXTAREA') {
+					    $(els[ind]).focus();
+					    event.preventDefault();
+					}
 
-			$('#fkey').removeClass('dp').addClass('ndp').empty();
-		    });
+					$('#fkey').removeClass('dp').addClass(
+						'ndp').empty();
+				    });
 		})(i, tip_content);
 	    }
 	},
@@ -519,7 +524,7 @@ $(function() {
 
 	    } else if (event.keyCode == 13) {
 		if (syl.touser) {
-		    if (!$(syl.wnd.activeele).is($('#chat_textarea')))
+		    if (!$(document.activeElement).is($('#chat_textarea')))
 			return;
 		    var cmd = 'CHAT';
 		    var fromuser = syl.util.get_obj('u');

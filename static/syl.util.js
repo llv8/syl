@@ -2,7 +2,7 @@ syl = {}
 $(function() {
     syl.util = {
 	interalrefresh : function() {
-	    setInterval("syl.util.refresh()", 60 * 1000);
+	    setInterval("syl.util.refresh()", syl.refresh_data);
 	},
 	userstatus : function() {
 	    var user = syl.util.get_obj('u');

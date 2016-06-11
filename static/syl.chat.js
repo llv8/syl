@@ -10,13 +10,12 @@ $(function() {
 		if (event.keyCode === 27) {
 		    $(this).blur();
 		    window.getSelection().removeAllRanges();
-		    /*var parents = syl.wnd.activeele.parents();
-		    for (var i = 0; i < parents.length; i++) {
-			if ($(parents[i]).attr('tabIndex')) {
-			    $(parents[i]).focus();
-			    break;
-			}
-		    }*/
+		    /*
+		     * var parents = syl.wnd.activeele.parents(); for (var i =
+		     * 0; i < parents.length; i++) { if
+		     * ($(parents[i]).attr('tabIndex')) { $(parents[i]).focus();
+		     * break; } }
+		     */
 
 		}
 	    })

@@ -112,15 +112,18 @@ $(function() {
 	    } ]
 	},
 	__all_el : function() {
-	    return $('a,input,textarea,[tabIndex]');
+	    return $('a,input,textarea,div[tabIndex]');
 	},
 	__focus_handler : function() {
-	    var all_el = $('input,textarea,[tabIndex]');
+	    var all_el = syl.key.__all_el();
 	    all_el.focus(function() {
-		all_el.removeClass('a_b').addClass('i_b');
+		all_el.filter('input,textarea,div[tabIndex]')
+			.removeClass('a_b').addClass('i_b');
 		$('.title').removeClass('a_t').addClass('i_t');
+		if (this.tagName != 'A') {
+		    $(this).removeClass('i_b').addClass('a_b');
+		}
 
-		$(this).removeClass('i_b').addClass('a_b');
 		$(this).parents('.wnd').children('.title').removeClass('i_t')
 			.addClass('a_t');
 		$(this).children('.title').removeClass('i_t').addClass('a_t');
@@ -371,7 +374,7 @@ $(function() {
 	move_n : function() {
 	    var hl = $('.highlight');
 	    var cur = syl.find_index;
-	    var next = (cur + 1) == hl.length ? 0 : cur + 1;
+	    var next = (cur + 1) == (hl.length - 1) ? 0 : cur + 1;
 	    syl.find_index = next;
 	    $(hl[cur]).removeClass('a_highlight_bg');
 	    $(hl[next]).addClass('a_highlight_bg');
@@ -379,7 +382,7 @@ $(function() {
 	    // var viewportH = $('#chat_content')[0].clientHeight;
 	    // real view
 	    // var realH = $('#chat_content')[0].scrollHeight;
-	    var parent = $(hl[next]).parents().filter('[tabIndex]')[0];
+	    var parent = $(hl[next]).parents().filter('div[tabIndex]')[0];
 	    var top = hl[next].offsetTop - parent.offsetTop - 18;
 	    $(parent).scrollTop(top);
 	},
@@ -387,7 +390,7 @@ $(function() {
 	move_p : function() {
 	    var hl = $('.highlight');
 	    var cur = syl.find_index;
-	    var pre = (cur - 1) < 0 ? hl.length - 1 : cur - 1;
+	    var pre = (cur - 1) < 0 ? hl.length - 2 : cur - 1;
 	    syl.find_index = pre;
 	    $(hl[cur]).removeClass('a_highlight_bg');
 	    $(hl[pre]).addClass('a_highlight_bg');
@@ -395,7 +398,7 @@ $(function() {
 	    // var viewportH = $('#chat_content')[0].clientHeight;
 	    // real view
 	    // var realH = $('#chat_content')[0].scrollHeight;
-	    var parent = $(hl[pre]).parents().filter('[tabIndex]')[0];
+	    var parent = $(hl[pre]).parents().filter('div[tabIndex]')[0];
 	    var top = hl[pre].offsetTop - parent.offsetTop - 18;
 	    $(parent).scrollTop(top);
 	},
@@ -452,6 +455,12 @@ $(function() {
 		var position = $(els[i]).position();
 		var top = position.top;
 		var left = position.left;
+		if (top + parseInt($(els[i]).css('height').replace('px', '')) < 0
+			|| left
+				+ parseInt($(els[i]).css('width').replace('px',
+					'')) < 0) {
+		    continue;
+		}
 		var parents = $(els[i]).parents();
 		var break_flag = false;
 		for (var j = 0; j < parents.length; j++) {
@@ -461,15 +470,18 @@ $(function() {
 		    }
 		    if ($(parents[j]).css('position') == 'relative') {
 			var parent_pos = $(parents[j]).position();
+			var p_height = parseInt($(parents[j]).css('height')
+				.replace('px', ''));
+			var p_width = parseInt($(parents[j]).css('width')
+				.replace('px', ''));
+			if (p_height < top || p_width < left) {
+			    break_flag = true;
+			    break;
+			}
 			top += parent_pos.top;
 			left += parent_pos.left;
 		    }
 
-		    if ($(parents[j]).css('position') == 'absolute') {
-			var parent_pos = $(parents[j]).position();
-			top += parent_pos.top;
-			left += parent_pos.left;
-		    }
 		}
 		if (break_flag) {
 		    continue;
@@ -477,13 +489,6 @@ $(function() {
 
 		tip.css('top', top);
 		tip.css('left', left);
-		if ($(els[i]).parents('.wnd').length > 0)
-		    tip
-			    .css('z-index', $(els[i]).parents('.wnd').css(
-				    'z-index'));
-		else if ($(els[i]).parents('.wnd').length > 0)
-		    tip.css('z-index',
-			    $(els[i]).parents('.wnd').css('z-index') + 1);
 
 		$('#fkey').append(tip).removeClass('ndp').addClass('dp');
 
@@ -496,6 +501,8 @@ $(function() {
 					    var url = $(els[ind]).attr('href');
 					    if (!url || url.indexOf('#') == 0) {
 						$(els[ind]).click();
+						$($(els[ind]).attr('href'))
+							.focus();
 					    } else {
 						window.open(url);
 					    }
@@ -567,8 +574,7 @@ $(function() {
 	open_popup : function() {
 	    $('#popup').removeClass('ndp').addClass('dp');
 	    var popup = $('#popup')[0];
-	    popup.style.top = document.body.scrollTop
-		    + document.body.clientHeight - popup.clientHeight - 24
+	    popup.style.top = document.body.scrollTop - popup.clientHeight - 4
 		    + "px";
 	    popup.style.left = document.body.scrollLeft
 		    + document.body.clientWidth - popup.clientWidth - 4 + "px";

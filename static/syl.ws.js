@@ -1,6 +1,6 @@
 $(function() {
     syl.ws = {
-	url : 'ws://192.168.0.108:8889/syl',
+	url : 'ws://siyuel.com:8889/syl',
 	ws : null,
 	heartbeatid : null,
 	checkolid : null,

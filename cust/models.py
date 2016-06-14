@@ -6,7 +6,6 @@ class User(models.Model):
     email = models.EmailField(max_length=50)
     phone = models.CharField(max_length=20)
     status = models.IntegerField(default=0)
-    utime = models.FloatField(default=0)
     pwd = models.CharField(max_length=32, default='')
     
 # each user can create 5 groups

@@ -21,7 +21,8 @@ sudo service redis-server restart
 sudo mkdir /var/log/syl
 
 cd /var/project/syl
-nohup python ~/.local/lib/python2.7/site-packages/mod_pywebsocket/standalone.py -p 8889 -d ws &
+openssl rsa -in syl.key -out syl.key.unsecure
+nohup python ~/.local/lib/python2.7/site-packages/mod_pywebsocket/standalone.py -p 8889 -t -k /etc/ssl/private/syl.key.unsecure -c /etc/ssl/private/syl.crt -d ws &
 
 
 

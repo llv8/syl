@@ -99,7 +99,7 @@ $(function() {
             syl.ws.render_to(records[i]);
           }
         }
-      }, 10);
+      }, 100);
     },
     chat_resp: function(msg) {
       syl.ws.render_to(msg);

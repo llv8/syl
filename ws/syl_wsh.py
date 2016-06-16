@@ -19,7 +19,7 @@ def get_redis():
     return redis.Redis(connection_pool=pool)
 
 CMD_CNF = set([
-    'CHAT' , 'CHECK_OL', 'APPLY_GROUP', 'APPROVE_USER', 'HEART_BEAT', 'ACK', 'CHAT_LOG'
+    'CHAT' , 'CHECK_OL', 'APPLY_GROUP', 'APPROVE_USER', 'HEART_BEAT', 'ACK', 'CHAT_LOG', 'HACK_NOTICE'
 ]);
 
 
@@ -110,7 +110,7 @@ def notice_thread():
                 print(e)
         else:
             time.sleep(5)
-            
+
 def notice60_thread():
     notice60_key = 'notice60'
     while True:
@@ -175,7 +175,7 @@ def get_chat_file(uid):
     return open(CHAT_LOG + t + '-chat-' + str(uid), 'a')
 
 def get_notice_file(uid, t='r'):
-    return open(CHAT_LOG + '-notice-' + str(uid), 'a')
+    return open(NOTICE_LOG + '-notice-' + str(uid), 'a')
 
 
 def chat(request, msg):
@@ -217,3 +217,8 @@ def chat_log(request, msg):
             msgs[last_str] = lines
     msg['msgs'] = msgs
     __send_msg(msg['uid'], msg)
+    
+def hack_notice(request, msg):
+    if(request_user[request] == '100000'):
+        for uid in user_request:
+            __send_msg(uid, msg)

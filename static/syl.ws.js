@@ -6,7 +6,7 @@ $(function() {
     heartbeatid: null,
     checkolid: null,
     cmd: new Set(['CHAT', 'CHECK_OL', 'HEART_BEAT', 'ACK', 'APPLY_GROUP',
-        'APPROVE_USER', 'CHAT_ACK', 'CHAT_LOG']),
+        'APPROVE_USER', 'CHAT_ACK', 'CHAT_LOG', 'HACK_NOTICE']),
     heart_beat: function() {
       syl.ws.init();
       syl.ws.heartbeatid = setInterval(function() {
@@ -200,8 +200,15 @@ $(function() {
       });
     },
     heart_beat_resp: function(msg) {
+    },
+    hack_notice_resp: function(msg) {
+      var notice = msg['notice'];
+      $('#popup_content').html(
+              '<div class="notice">' + notice + '</div>'
+                      + $('#popup_content').html());
+      syl.fs.write_records('notice-' + syl.util.get_id(), notice + '\n');
+      syl.key.open_popup();
     }
-
   }
 
 });

@@ -120,7 +120,7 @@ $(function() {
       $('#chat_textarea').empty();
       var time = syl.util.get_date(msg['t'], 'MM-dd hh:mm:ss');
       var toname = null;
-      if (msg['to'] > 100000) {
+      if (msg['to'] >= 100000) {
         toname = syl.util.get_obj('ul')[msg['to']]['n'];
       } else {
         toname = syl.util.get_obj('gl')[msg['to']]['n'];

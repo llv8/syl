@@ -81,7 +81,7 @@ $(function() {
     },
     select: function(event, ui) {
       $(this).html('@' + ui.item.label + ':');
-      if (ui.item.userid > 100000) {
+      if (ui.item.userid >= 100000) {
         syl.touser = syl.util.get_obj('ul')[ui.item.userid];
         syl.touser['i'] = ui.item.userid;
       } else {

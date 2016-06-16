@@ -300,6 +300,7 @@ def approve_user(request):
     try:
         groupuser = models.GroupUser.objects.get(group_id=int(params[0]), user_id=int(params[1]))
         groupuser.status = 1
+        groupuser.utime = time.time()
         groupuser.save()
         msg = {'cmd':'APPROVE_USER', 'to':params[1], 'gid':params[0], 't':2, 'ex':time.time() + 7 * 24 * 60 * 60}
         sylredis.get_redis().lpush('notice', json.dumps(msg))

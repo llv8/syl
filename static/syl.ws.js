@@ -180,7 +180,9 @@ $(function() {
       }
       syl.util.set_obj('aul', approveuserlist)
       var notice = username + '申请加入' + groupname;
-      $('#popup .worker').append($('<div class="notice">').html(notice));
+      $('#popup_content').html(
+              '<div class="notice">' + notice + '</div>'
+                      + $('#popup_content').html());
       syl.fs.write_records('notice-' + syl.util.get_id(), notice + '\n');
       syl.key.open_popup();
     },

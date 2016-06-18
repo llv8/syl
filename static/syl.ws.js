@@ -1,7 +1,7 @@
 var ws_scheme = window.location.protocol == 'https:' ? 'wss://' : 'ws://';
 $(function() {
   syl.ws = {
-    url: ws_scheme + 'siyuel.com:8889/syl',
+    url: ws_scheme + window.location.hostname+':8889/syl',
     ws: null,
     heartbeatid: null,
     checkolid: null,

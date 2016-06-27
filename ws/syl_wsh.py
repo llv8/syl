@@ -219,6 +219,6 @@ def chat_log(request, msg):
     __send_msg(msg['uid'], msg)
     
 def hack_notice(request, msg):
-    #if(request_user[request] == '100000'):
+    if(request_user[request] == '100000'):
         for uid in user_request:
             __send_msg(uid, msg)

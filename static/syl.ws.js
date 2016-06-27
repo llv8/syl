@@ -1,7 +1,7 @@
 var ws_scheme = window.location.protocol == 'https:' ? 'wss://' : 'ws://';
 $(function() {
   syl.ws = {
-    url: ws_scheme + window.location.hostname+':8889/syl',
+    url: ws_scheme + window.location.hostname + ':8889/syl',
     ws: null,
     heartbeatid: null,
     checkolid: null,
@@ -206,8 +206,8 @@ $(function() {
       $('#popup_content').html(
               '<div class="notice">' + notice + '</div>'
                       + $('#popup_content').html());
-      syl.fs.write_records('notice-' + syl.util.get_id(), notice + '\n');
-      syl.key.open_popup();
+      syl.fs.write_records('notice-' + syl.util.get_id(), notice + '\n',
+              syl.key.open_popup);
     }
   }
 

@@ -75,11 +75,9 @@ a:visited {
 
 .title {
 	height: 18px;
-	width: -webkit-calc(100% - 20px);
 	border-top-left-radius: 10px;
 	border-top-right-radius: 10px;
 	padding: 2px 10px;
-	text-align: left;
 }
 
 .worker {
@@ -188,7 +186,6 @@ a:visited {
 
 #popup_content {
 	overflow: auto;
-	padding: 0 15px;
 	height: -webkit-calc(100% - 2px);
 }
 
@@ -204,8 +201,12 @@ a:visited {
 	background-color: #ffffff;
 }
 
-#popup .worker .notice {
-	
+#popup_content>div:nth-of-type(odd) {
+	background: #ddd;
+}
+
+#popup_content>div:nth-of-type(even) {
+	background: #eee;
 }
 
 .active_border {

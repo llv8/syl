@@ -15,7 +15,7 @@ $(function() {
 
             reader.onloadend = function(e) {
               var records = this.result.split('\n');
-              var lastestrecords = records.lenght > len ? records.slice(
+              var lastestrecords = records.length > len ? records.slice(
                       records.length - len, records.length) : records.slice(0,
                       records.length);
               var rs = [];

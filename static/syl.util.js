@@ -21,6 +21,7 @@ $(function() {
                 syl.util.refresh(false);
                 syl.ws.heart_beat();
                 syl.util.interalrefresh();
+                syl.tools.init();
               }
               th.update_stat(data.u);
             } else if (data.l == 2) {

@@ -1,10 +1,18 @@
 $(function() {
   syl.key = {
     init: function() {
-      $.each(this.key_cnf(), function(i, n) {
+      syl.key.key_bind();
+      syl.key.__focus_handler();
+    },
+    key_bind: function() {
+      $.each(syl.key.key_cnf(), function(i, n) {
         Mousetrap.bind(n.key, n.req);
       });
-      syl.key.__focus_handler();
+    },
+    key_unbind: function() {
+      $.each(syl.key.key_cnf(), function(i, n) {
+        if (n.key != 'esc') Mousetrap.unbind(n.key);
+      });
     },
     key_cnf: function() {
       var th = this
@@ -119,7 +127,11 @@ $(function() {
         if (this.tagName != 'A') {
           $(this).removeClass('i_b').addClass('a_b');
         }
-
+        if ($(this).attr('id') == 'chat_textarea') {
+          var range = window.getSelection();
+          range.selectAllChildren(this);
+          range.collapseToEnd();// 光标移至最后
+        }
         $(this).parents('.wnd').children('.title').removeClass('i_t').addClass(
                 'a_t');
         $(this).children('.title').removeClass('i_t').addClass('a_t');
@@ -138,7 +150,7 @@ $(function() {
       } else if ($('#mask').hasClass('dp')) {
         $('#mask').removeClass('dp').addClass('ndp').empty();
       } else if ($('#fkey').hasClass('dp')) {
-        $('#fkey').removeClass('dp').addClass('ndp').empty();
+        syl.key.fkey_empty();
       }
       var cur_el = syl.key.__cur_el();
       var parents = $(cur_el).parents();
@@ -160,9 +172,7 @@ $(function() {
       return cur_wnd;
     },
     __cur_el: function() {
-      if (document.activeElement.tagName == 'BODY') {
-        syl.pre_focus.focus();
-      }
+      if (document.activeElement.tagName == 'BODY') { return syl.pre_focus; }
       return document.activeElement;
     },
     switchwnd: function() {
@@ -468,7 +478,7 @@ $(function() {
         tip.css('left', left);
 
         $('#fkey').append(tip).removeClass('ndp').addClass('dp');
-
+        syl.key.key_unbind();
         (function(ind, tip_content) {
           Mousetrap.bind(tip_content.split('').join(' '), function(event) {
             if (els[ind].tagName.toUpperCase() == 'A') {
@@ -485,11 +495,14 @@ $(function() {
               $(els[ind]).focus();
               event.preventDefault();
             }
-
-            $('#fkey').removeClass('dp').addClass('ndp').empty();
+            syl.key.fkey_empty();
           });
         })(i, tip_content);
       }
+    },
+    fkey_empty: function() {
+      $('#fkey').removeClass('dp').addClass('ndp').empty();
+      syl.key.key_bind();
     },
     chat_send: function(event) {
       if (event.keyCode == 64 && $('#chat_content').val() == '') {

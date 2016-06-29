@@ -553,6 +553,8 @@ $(function() {
     open_popup: function() {
       if ($('#popup').hasClass('ndp')) {
         syl.key.open_close_popup();
+      } else {
+        syl.key.load_notice();
       }
     },
     load_notice: function() {

@@ -180,11 +180,8 @@ $(function() {
       }
       syl.util.set_obj('aul', approveuserlist)
       var notice = username + '申请加入' + groupname;
-      $('#popup_content').html(
-              '<div class="notice">' + notice + '</div>'
-                      + $('#popup_content').html());
-      syl.fs.write_records('notice-' + syl.util.get_id(), notice + '\n');
-      syl.key.open_popup();
+      syl.fs.write_records('notice-' + syl.util.get_id(), notice + '\n',
+              syl.key.open_popup);
     },
     approve_user_resp: function(msg) {
       syl.util.ajax_send({
@@ -194,8 +191,8 @@ $(function() {
           syl.util.update_userlist(data['ul']);
           syl.util.showMsg(null, 1);
           var notice = '您已加入' + syl.util.get_obj('gl')[msg['gid']]['n'];
-          $('#popup .worker').append($('<div class="notice">').html(notice));
-          syl.key.open_popup();
+          syl.fs.write_records('notice-' + syl.util.get_id(), notice + '\n',
+                  syl.key.open_popup);
         }
       });
     },
@@ -203,9 +200,6 @@ $(function() {
     },
     hack_notice_resp: function(msg) {
       var notice = msg['notice'];
-      $('#popup_content').html(
-              '<div class="notice">' + notice + '</div>'
-                      + $('#popup_content').html());
       syl.fs.write_records('notice-' + syl.util.get_id(), notice + '\n',
               syl.key.open_popup);
     }
